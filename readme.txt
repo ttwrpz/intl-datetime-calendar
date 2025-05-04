@@ -1,8 +1,8 @@
 === Intl DateTime Calendar ===
 Contributors: ttwrpz
-Tags: calendar, datetime, internationalization, buddhist, i18n, formatting
+Tags: calendar, datetime, internationalization, i18n, formatting
 Requires at least: 5.0
-Tested up to: 6.8.1
+Tested up to: 6.8
 Stable tag: 1.0.0
 Requires PHP: 7.0
 License: GPLv2 or later
