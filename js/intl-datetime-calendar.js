@@ -18,15 +18,13 @@
                 return false;
             }
 
-            // Check for Intl.supportedValuesOf for calendar types
             if (typeof Intl.supportedValuesOf !== 'function') {
-                console.warn('Intl.supportedValuesOf not available - limited calendar support');
+                console.warn('Intl.supportedValuesOf not available limited calendar support');
             }
 
             new Intl.DateTimeFormat('en', {dateStyle: 'full'}).format(new Date());
             return true;
         } catch (e) {
-            console.error('Intl API check failed:', e);
             return false;
         }
     }
@@ -69,7 +67,6 @@
         }
 
         if (!phpFormat) {
-            console.warn('Intl DateTime Calendar - No format string provided, using defaults');
             return options;
         }
 
@@ -282,8 +279,6 @@
                         result += formatter.format(date);
                     }
                 } catch (e) {
-                    console.warn(`Error formatting '${char}' with Intl API:`, e);
-                    // Fall back to basic implementation for this character
                     result += fallbackFormat(date, char);
                 }
             }
@@ -313,7 +308,6 @@
         try {
             const date = new Date(parseInt(timestamp, 10));
             if (isNaN(date.getTime())) {
-                console.error('Invalid timestamp:', timestamp);
                 return '';
             }
 
@@ -354,7 +348,7 @@
             const formatter = getFormatter(locale, formatOptions);
             return formatter.format(date);
         } catch (e) {
-            console.error('Intl DateTime Calendar - Error formatting date:', e, settings);
+            console.error('[Intl DateTime Calendar] Error formatting date:', e, settings);
             try {
                 const date = new Date(parseInt(timestamp, 10));
                 return date.toLocaleString(
@@ -363,7 +357,7 @@
                         'en')
                 );
             } catch (fallbackError) {
-                console.error('Even fallback formatting failed:', fallbackError);
+                console.error('[Intl DateTime Calendar] Error fallback formatting date:', fallbackError);
                 return '';
             }
         }
@@ -479,9 +473,7 @@
                     if (!isNaN(originalDate.getTime())) {
                         $el.attr('title', originalDate.toLocaleString(elementSettings.locale));
                     }
-                } catch (e) {
-                    console.warn('Failed to set title attribute:', e);
-                }
+                } catch (e) {}
             }
         });
     }
@@ -570,7 +562,7 @@
      */
     function init() {
         if (!window.intlDateTimeCalendarSettings) {
-            console.error('Intl DateTime Calendar - Settings not loaded properly');
+            console.error('[Intl DateTime Calendar] Settings not loaded properly');
         }
 
         if (!isIntlSupported()) {
