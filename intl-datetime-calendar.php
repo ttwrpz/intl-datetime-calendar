@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) || ! defined( 'ABSPATH' ) ) {
 /**
  * Current plugin version.
  */
-define( 'INTL_DATETIME_CALENDAR_VERSION', '1.0.0' );
+define( 'INTL_DATETIME_CALENDAR_VERSION', '1.0.1' );
 
 class Intl_DateTime_Calendar {
 
