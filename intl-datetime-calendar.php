@@ -6,7 +6,7 @@
  * Version: 1.0.1
  * Requires PHP: 7.0
  * Requires at least: 5.0
- * Author: ttwrpz, sigmarubyz
+ * Author: ttwrpz
  * Author URI: https://github.com/ttwrpz
  * Text Domain: intl-datetime-calendar
  * License: GPL v2 or later
