@@ -104,6 +104,9 @@ Or use the shortcode in your content:
 
 == Changelog ==
 
+= 1.0.1 =
+* Renamed main plugin file to match WordPress.org naming convention (`intl-datetime-calendar.php`)
+
 = 1.0.0 =
 * Initial release
 * Support for 12 different calendar systems
@@ -114,6 +117,9 @@ Or use the shortcode in your content:
 * Thai Buddhist calendar special handling
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Renamed main plugin file to fix compatibility with WordPress.org submission requirements
 
 = 1.0.0 =
 Initial release
