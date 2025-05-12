@@ -1,5 +1,5 @@
 === Intl DateTime Calendar ===
-Contributors: ttwrpz
+Contributors: ttwrpz, sigmarubyz
 Tags: calendar, datetime, internationalization, i18n, formatting
 Requires at least: 5.0
 Tested up to: 6.8
