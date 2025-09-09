@@ -1,9 +1,9 @@
 === Intl DateTime Calendar ===
-Contributors: ttwrpz, sigmarubyz
+Contributors: sigmarubyz
 Tags: calendar, datetime, internationalization, i18n, formatting
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 Requires PHP: 7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
@@ -104,6 +104,13 @@ Or use the shortcode in your content:
 
 == Changelog ==
 
+= 1.0.2 =
+* Security: Fixed authenticated (Contributor+) stored XSS vulnerability via date parameter (CVE-2025-8293)
+* Security: Added comprehensive input sanitization for all date inputs
+* Security: Added proper output escaping for all HTML attributes and content
+* Security: Implemented validation for shortcode parameters
+* Improvement: Enhanced date validation to prevent malformed input
+
 = 1.0.1 =
 * Renamed main plugin file to match WordPress.org naming convention (`intl-datetime-calendar.php`)
 
@@ -117,6 +124,9 @@ Or use the shortcode in your content:
 * Thai Buddhist calendar special handling
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+SECURITY UPDATE: Critical fix for stored XSS vulnerability (CVE-2025-8293). All users should update immediately to prevent script injection attacks by authenticated users with Contributor+ access. This patches a security issue affecting all versions up to 1.0.1.
 
 = 1.0.1 =
 Renamed main plugin file to fix compatibility with WordPress.org submission requirements
