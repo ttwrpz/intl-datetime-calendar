@@ -3,7 +3,7 @@
  *
  * This script handles formatting dates and times using the Intl API
  */
-(function ($) {
+(function () {
     'use strict';
 
     const formatterCache = new Map();
@@ -36,7 +36,7 @@
      * @returns {Intl.DateTimeFormat} The formatter object
      */
     function getFormatter(locale, options) {
-        const cacheKey = `${locale}|${JSON.stringify(options)}`;
+        const cacheKey = locale + '|' + JSON.stringify(options);
 
         if (!formatterCache.has(cacheKey)) {
             formatterCache.set(cacheKey, new Intl.DateTimeFormat(locale, options));
@@ -100,9 +100,9 @@
         };
 
         // Check for specific format patterns
-        for (const [char, intlOpt] of Object.entries(formatMap)) {
-            if (phpFormat.includes(char)) {
-                Object.assign(options, intlOpt);
+        for (const char in formatMap) {
+            if (formatMap.hasOwnProperty(char) && phpFormat.includes(char)) {
+                Object.assign(options, formatMap[char]);
             }
         }
 
@@ -123,11 +123,12 @@
             return '';
         }
 
-        const getFormatterFor = (formatChar, extraOptions = {}) => {
-            const cacheKey = `${formatChar}|${locale}|${calendar}|${JSON.stringify(extraOptions)}`;
+        const getFormatterFor = function (formatChar, extraOptions) {
+            extraOptions = extraOptions || {};
+            const cacheKey = formatChar + '|' + locale + '|' + calendar + '|' + JSON.stringify(extraOptions);
 
             if (!formatterCache.has(cacheKey)) {
-                const options = {calendar, ...extraOptions};
+                const options = Object.assign({calendar: calendar}, extraOptions);
 
                 switch (formatChar) {
                     // Year formatters
@@ -209,14 +210,14 @@
         };
 
         // Special case for Buddhist years when using Thai locale
-        const isThai = locale && locale.startsWith('th');
+        const isThai = locale && locale.indexOf('th') === 0;
         const isBuddhist = calendar === 'buddhist';
 
         // Process each character in the format string
         let result = '';
         let i = 0;
         while (i < format.length) {
-            const char = format.charAt(i);
+            let char = format.charAt(i);
 
             // Handle special cases for Thai Buddhist calendar
             if (isThai && isBuddhist && (char === 'B' || char === 'b')) {
@@ -251,22 +252,22 @@
                     // Special handling for AM/PM indicators
                     if (char === 'a' || char === 'A') {
                         const timeParts = formatter.formatToParts(date);
-                        const ampmPart = timeParts.find(part => part.type === 'dayPeriod');
+                        const ampmPart = timeParts.find(function (part) {
+                            return part.type === 'dayPeriod';
+                        });
                         if (ampmPart) {
-                            result += char === 'a' ?
-                                ampmPart.value.toLowerCase() :
-                                ampmPart.value.toUpperCase();
+                            result += char === 'a' ? ampmPart.value.toLowerCase() : ampmPart.value.toUpperCase();
                         } else {
                             // Fallback if no dayPeriod part found
-                            result += char === 'a' ?
-                                (date.getHours() < 12 ? 'am' : 'pm') :
-                                (date.getHours() < 12 ? 'AM' : 'PM');
+                            result += char === 'a' ? (date.getHours() < 12 ? 'am' : 'pm') : (date.getHours() < 12 ? 'AM' : 'PM');
                         }
                     }
                     // Special handling for 12-hour format numeric hours
                     else if (char === 'g') {
-                        const timeParts = formatter.formatToParts(date);
-                        const hourPart = timeParts.find(part => part.type === 'hour');
+                        const hourParts = formatter.formatToParts(date);
+                        const hourPart = hourParts.find(function (part) {
+                            return part.type === 'hour';
+                        });
                         if (hourPart) {
                             result += hourPart.value;
                         } else {
@@ -294,6 +295,51 @@
     }
 
     /**
+     * Get WordPress site locale (never use browser locale)
+     * @returns {string} WordPress site locale
+     */
+    function getWPLocale() {
+        return (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.locale) || 'en';
+    }
+
+    /**
+     * Format date using fallback (custom format or WordPress default)
+     * @param {Date} date - Date object
+     * @param {Object} elementSettings - Element settings including customFormat and type
+     * @returns {string} Formatted date string
+     */
+    function formatWithFallback(date, elementSettings) {
+        const wpSettings = getSettings();
+        let format;
+
+        // Use custom format if available, otherwise use WordPress default
+        if (elementSettings.customFormat) {
+            format = elementSettings.customFormat;
+        } else {
+            const type = elementSettings.type || 'date';
+            if (type === 'date') {
+                format = wpSettings.wp_date_format;
+            } else if (type === 'time') {
+                format = wpSettings.wp_time_format;
+            } else {
+                format = wpSettings.wp_date_format + ' ' + wpSettings.wp_time_format;
+            }
+        }
+
+        // Use fallback formatter with the format string
+        let result = '';
+        for (let i = 0; i < format.length; i++) {
+            const char = format.charAt(i);
+            if (char === '\\' && i + 1 < format.length) {
+                result += format.charAt(++i);
+            } else {
+                result += fallbackFormat(date, char);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Format a date using Intl.DateTimeFormat with WordPress or custom settings
      *
      * @param {Number} timestamp - The timestamp in milliseconds
@@ -311,17 +357,11 @@
                 return '';
             }
 
-            // Get the locale and calendar settings
-            const locale = settings.locale ||
-                (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.locale) ||
-                'en';
-            const calendar = settings.calendar ||
-                (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.calendar_type) ||
-                'gregory';
+            const locale = getWPLocale();
+            const calendar = settings.calendar || (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.calendar_type) || 'gregory';
 
             // Check if a custom format specified by the block
-            if ((settings.dateFormat === 'custom' || settings.timeFormat === 'custom') &&
-                settings.customFormat) {
+            if ((settings.dateFormat === 'custom' || settings.timeFormat === 'custom') && settings.customFormat) {
                 // Use our improved custom format function
                 return formatDateWithCustomFormat(date, settings.customFormat, locale, calendar);
             }
@@ -332,13 +372,13 @@
             // Get appropriate WordPress format with fallbacks
             let wpFormat;
             if (formatType === 'date') {
-                wpFormat = window.intlDateTimeCalendarSettings?.wp_date_format || 'F j, Y';
+                wpFormat = (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.wp_date_format) || 'F j, Y';
             } else if (formatType === 'time') {
-                wpFormat = window.intlDateTimeCalendarSettings?.wp_time_format || 'g:i a';
+                wpFormat = (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.wp_time_format) || 'g:i a';
             } else {
-                const dateFormat = window.intlDateTimeCalendarSettings?.wp_date_format || 'F j, Y';
-                const timeFormat = window.intlDateTimeCalendarSettings?.wp_time_format || 'g:i a';
-                wpFormat = `${dateFormat} ${timeFormat}`;
+                const dateFormat = (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.wp_date_format) || 'F j, Y';
+                const timeFormat = (window.intlDateTimeCalendarSettings && window.intlDateTimeCalendarSettings.wp_time_format) || 'g:i a';
+                wpFormat = dateFormat + ' ' + timeFormat;
             }
 
             // Convert WordPress format to Intl options
@@ -350,12 +390,9 @@
         } catch (e) {
             console.error('[Intl DateTime Calendar] Error formatting date:', e, settings);
             try {
-                const date = new Date(parseInt(timestamp, 10));
-                return date.toLocaleString(
-                    (settings.locale ||
-                        (window.intlDateTimeCalendarSettings?.locale) ||
-                        'en')
-                );
+                // Fallback: Use custom format if available, otherwise WordPress default
+                const fallbackDate = new Date(parseInt(timestamp, 10));
+                return formatWithFallback(fallbackDate, settings);
             } catch (fallbackError) {
                 console.error('[Intl DateTime Calendar] Error fallback formatting date:', fallbackError);
                 return '';
@@ -431,22 +468,30 @@
      */
     function processDateTimeElements() {
         const settings = getSettings();
+        const elements = document.querySelectorAll('.intl-datetime-element:not([data-intl-processed])');
 
-        $('.intl-datetime-element').each(function () {
-            const $el = $(this);
-            const timestamp = $el.data('intl-datetime');
+        elements.forEach(function (el) {
+            const timestamp = el.dataset.intlDatetime;
 
             if (!timestamp) {
                 return;
             }
 
+            if (el.dataset.customFormat === 'human-diff') {
+                el.setAttribute('data-intl-processed', 'true');
+                return;
+            }
+
+            // Mark as processed to prevent re-processing
+            el.setAttribute('data-intl-processed', 'true');
+
             const elementSettings = {
-                calendar: $el.data('calendar') || settings.calendar_type,
-                locale: settings.locale, // Always use WordPress locale
+                calendar: el.dataset.calendar || settings.calendar_type,
+                locale: settings.locale, // Always use WordPress site locale (not browser)
                 type: 'datetime', // Default to full datetime
-                dateFormat: $el.data('date-format') || 'wp',
-                timeFormat: $el.data('time-format') || 'wp',
-                customFormat: $el.data('custom-format') || null
+                dateFormat: el.dataset.dateFormat || 'wp',
+                timeFormat: el.dataset.timeFormat || 'wp',
+                customFormat: el.dataset.customFormat || null
             };
 
             const hasDate = elementSettings.dateFormat !== 'none';
@@ -459,21 +504,22 @@
             }
 
             const formattedDate = formatDateTime(timestamp, elementSettings);
-
             if (formattedDate) {
-                const $link = $el.find('a');
-                if ($link.length) {
-                    $link.text(formattedDate);
+                const link = el.querySelector('a');
+                if (link) {
+                    link.textContent = formattedDate;
                 } else {
-                    $el.text(formattedDate);
+                    el.textContent = formattedDate;
                 }
 
                 try {
                     const originalDate = new Date(parseInt(timestamp, 10));
                     if (!isNaN(originalDate.getTime())) {
-                        $el.attr('title', originalDate.toLocaleString(elementSettings.locale));
+                        // Use element's format for title attribute
+                        el.setAttribute('title', formatWithFallback(originalDate, elementSettings));
                     }
-                } catch (e) {}
+                } catch {
+                }
             }
         });
     }
@@ -483,22 +529,30 @@
      */
     function fixDateTimeInBlocks() {
         const settings = getSettings();
+        const elements = document.querySelectorAll('time.intl-datetime-element:not([data-intl-processed])');
 
-        $('time.intl-datetime-element').each(function () {
-            const $time = $(this);
-            const timestamp = $time.data('intl-datetime');
+        elements.forEach(function (el) {
+            const timestamp = el.dataset.intlDatetime;
 
             if (!timestamp) {
                 return;
             }
 
-            const dateFormat = $time.data('date-format');
-            const timeFormat = $time.data('time-format');
-            const customFormat = $time.data('custom-format');
+            // Skip elements with human-diff format
+            if (el.dataset.customFormat === 'human-diff') {
+                el.setAttribute('data-intl-processed', 'true');
+                return;
+            }
+
+            // Mark as processed to prevent re-processing
+            el.setAttribute('data-intl-processed', 'true');
+
+            const dateFormat = el.dataset.dateFormat;
+            const timeFormat = el.dataset.timeFormat;
+            const customFormat = el.dataset.customFormat;
 
             const elementSettings = {
-                calendar: $time.data('calendar') || settings.calendar_type,
-                locale: settings.locale
+                calendar: el.dataset.calendar || settings.calendar_type, locale: settings.locale
             };
 
             // Determine if this is a date, time, or datetime display
@@ -519,9 +573,9 @@
                     formatType = 'time';
                 } else {
                     // Fall back to checking container classes
-                    const $container = $time.closest('.wp-block-post-date, .wp-block-post-time');
-                    if ($container.length) {
-                        formatType = $container.hasClass('wp-block-post-date') ? 'date' : 'time';
+                    const container = el.closest('.wp-block-post-date, .wp-block-post-time');
+                    if (container) {
+                        formatType = container.classList.contains('wp-block-post-date') ? 'date' : 'time';
                     }
                 }
 
@@ -533,11 +587,11 @@
                 return;
             }
 
-            const $link = $time.find('a');
-            if ($link.length) {
-                $link.text(formattedDate);
+            const link = el.querySelector('a');
+            if (link) {
+                link.textContent = formattedDate;
             } else {
-                $time.text(formattedDate);
+                el.textContent = formattedDate;
             }
         });
     }
@@ -550,11 +604,34 @@
      */
     function debounce(func, wait) {
         let timeout;
-        return function (...args) {
+        return function () {
             const context = this;
+            const args = arguments;
             clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(context, args), wait);
+            timeout = setTimeout(function () {
+                func.apply(context, args);
+            }, wait);
         };
+    }
+
+    /**
+     * Called when DOM is ready
+     */
+    function onReady() {
+        processDateTimeElements();
+        fixDateTimeInBlocks();
+
+        const processDebounced = debounce(function () {
+            processDateTimeElements();
+            fixDateTimeInBlocks();
+        }, 250);
+
+        if (typeof MutationObserver === 'function') {
+            const observer = new MutationObserver(processDebounced);
+            observer.observe(document.body, {
+                childList: true, subtree: true
+            });
+        }
     }
 
     /**
@@ -570,30 +647,13 @@
             return;
         }
 
-        $(document).ready(function () {
-            processDateTimeElements();
-            fixDateTimeInBlocks();
-
-            $(document).ajaxComplete(function () {
-                processDateTimeElements();
-                fixDateTimeInBlocks();
-            });
-
-            const processDebounced = debounce(function () {
-                processDateTimeElements();
-                fixDateTimeInBlocks();
-            }, 250);
-
-            if (typeof MutationObserver === 'function') {
-                const observer = new MutationObserver(processDebounced);
-                observer.observe(document.body, {
-                    childList: true,
-                    subtree: true
-                });
-            }
-        });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', onReady);
+        } else {
+            onReady();
+        }
     }
 
     init();
 
-})(jQuery);
+})();

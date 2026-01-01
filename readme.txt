@@ -2,8 +2,8 @@
 Contributors: sigmarubyz
 Tags: calendar, datetime, internationalization, i18n, formatting
 Requires at least: 5.0
-Tested up to: 6.8
-Stable tag: 1.0.2
+Tested up to: 6.9
+Stable tag: 1.0.3
 Requires PHP: 7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
@@ -30,10 +30,16 @@ Intl DateTime Calendar transforms how dates and times are displayed on your Word
 * Buddhist
 * Chinese
 * Coptic
+* Dangi (Korean)
 * Ethiopic
+* Ethiopic (Amete Alem)
 * Hebrew
 * Indian
 * Islamic
+* Islamic (Civil)
+* Islamic (Saudi Arabia)
+* Islamic (Tabular)
+* Islamic (Umm al-Qura)
 * ISO 8601
 * Japanese
 * Persian
@@ -104,6 +110,19 @@ Or use the shortcode in your content:
 
 == Changelog ==
 
+= 1.0.3 =
+* Compatibility: Tested and confirmed working with WordPress 6.9
+* Performance: Added settings caching to reduce database queries
+* Performance: Added minified JavaScript for production environments
+* Performance: Removed jQuery dependency - now uses vanilla JavaScript
+* Feature: Added live date preview on settings page
+* Feature: Added 6 new calendar systems (Dangi, Ethiopic Amete Alem, Islamic variants)
+* Feature: Skip conversion for human-diff format elements
+* Fix: Prevent repeated date conversions (elements now processed only once)
+* Fix: Always use WordPress site language instead of browser language
+* Code Quality: Refactored regex patterns as class constants
+* Security: Added direct access prevention checks to all PHP files
+
 = 1.0.2 =
 * Security: Fixed authenticated (Contributor+) stored XSS vulnerability via date parameter (CVE-2025-8293)
 * Security: Added comprehensive input sanitization for all date inputs
@@ -124,6 +143,9 @@ Or use the shortcode in your content:
 * Thai Buddhist calendar special handling
 
 == Upgrade Notice ==
+
+= 1.0.3 =
+Performance update with WordPress 6.9 compatibility. Reduced database queries, removed jQuery dependency, and added minified JavaScript for faster page loads.
 
 = 1.0.2 =
 SECURITY UPDATE: Critical fix for stored XSS vulnerability (CVE-2025-8293). All users should update immediately to prevent script injection attacks by authenticated users with Contributor+ access. This patches a security issue affecting all versions up to 1.0.1.

@@ -3,7 +3,7 @@
  * Plugin Name: Intl DateTime Calendar
  * Plugin URI: https://github.com/ttwrpz/intl-datetime-calendar
  * Description: A plugin that displays dates and times in various calendar systems using the Intl API.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Requires PHP: 7.0
  * Requires at least: 5.0
  * Author: ttwrpz
@@ -13,16 +13,88 @@
  * License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  */
 
-if ( ! defined( 'WPINC' ) || ! defined( 'ABSPATH' ) ) {
-    die;
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
 }
 
 /**
  * Current plugin version.
  */
-define( 'INTL_DATETIME_CALENDAR_VERSION', '1.0.2' );
+define( 'INTL_DATETIME_CALENDAR_VERSION', '1.0.3' );
 
 class Intl_DateTime_Calendar {
+
+    /**
+     * Regex pattern for matching time elements in HTML.
+     */
+    const PATTERN_TIME_ELEMENT = '/<time\s+datetime="([^"]*)"\s*>(.*?)<\/time>/is';
+
+    /**
+     * Regex pattern for validating date string format.
+     */
+    const PATTERN_DATE_CHARS = '/^[\d\-\/\s:]+$/';
+
+    /**
+     * Cached plugin settings.
+     *
+     * @var array|null
+     */
+    private $cached_settings = null;
+
+    /**
+     * Cached WordPress date format.
+     *
+     * @var string|null
+     */
+    private $cached_date_format = null;
+
+    /**
+     * Cached WordPress time format.
+     *
+     * @var string|null
+     */
+    private $cached_time_format = null;
+
+    /**
+     * Get cached plugin settings.
+     *
+     * @return array Plugin settings.
+     */
+    private function get_settings() {
+        if ( $this->cached_settings === null ) {
+            $this->cached_settings = get_option( 'intl_datetime_calendar_settings', array(
+                    'calendar_type' => 'gregory',
+            ) );
+        }
+
+        return $this->cached_settings;
+    }
+
+    /**
+     * Get cached WordPress date format.
+     *
+     * @return string Date format.
+     */
+    private function get_date_format() {
+        if ( $this->cached_date_format === null ) {
+            $this->cached_date_format = get_option( 'date_format', 'F j, Y' );
+        }
+
+        return $this->cached_date_format;
+    }
+
+    /**
+     * Get cached WordPress time format.
+     *
+     * @return string Time format.
+     */
+    private function get_time_format() {
+        if ( $this->cached_time_format === null ) {
+            $this->cached_time_format = get_option( 'time_format', 'g:i a' );
+        }
+
+        return $this->cached_time_format;
+    }
 
     /**
      * Initialize the class and set its properties.
@@ -110,18 +182,24 @@ class Intl_DateTime_Calendar {
         $sanitized_input = array();
 
         $valid_calendar_types = array(
-                'gregory',
                 'buddhist',
                 'chinese',
                 'coptic',
+                'dangi',
+                'ethioaa',
                 'ethiopic',
+                'gregory',
                 'hebrew',
                 'indian',
                 'islamic',
+                'islamic-civil',
+                'islamic-rgsa',
+                'islamic-tbla',
+                'islamic-umalqura',
                 'iso8601',
                 'japanese',
                 'persian',
-                'roc'
+                'roc',
         );
 
         if ( isset( $input['calendar_type'] ) ) {
@@ -166,10 +244,16 @@ class Intl_DateTime_Calendar {
             <option value="buddhist" <?php selected( $options['calendar_type'], 'buddhist' ); ?>><?php echo esc_html__( 'Buddhist', 'intl-datetime-calendar' ); ?></option>
             <option value="chinese" <?php selected( $options['calendar_type'], 'chinese' ); ?>><?php echo esc_html__( 'Chinese', 'intl-datetime-calendar' ); ?></option>
             <option value="coptic" <?php selected( $options['calendar_type'], 'coptic' ); ?>><?php echo esc_html__( 'Coptic', 'intl-datetime-calendar' ); ?></option>
+            <option value="dangi" <?php selected( $options['calendar_type'], 'dangi' ); ?>><?php echo esc_html__( 'Dangi (Korean)', 'intl-datetime-calendar' ); ?></option>
+            <option value="ethioaa" <?php selected( $options['calendar_type'], 'ethioaa' ); ?>><?php echo esc_html__( 'Ethiopic (Amete Alem)', 'intl-datetime-calendar' ); ?></option>
             <option value="ethiopic" <?php selected( $options['calendar_type'], 'ethiopic' ); ?>><?php echo esc_html__( 'Ethiopic', 'intl-datetime-calendar' ); ?></option>
             <option value="hebrew" <?php selected( $options['calendar_type'], 'hebrew' ); ?>><?php echo esc_html__( 'Hebrew', 'intl-datetime-calendar' ); ?></option>
             <option value="indian" <?php selected( $options['calendar_type'], 'indian' ); ?>><?php echo esc_html__( 'Indian', 'intl-datetime-calendar' ); ?></option>
             <option value="islamic" <?php selected( $options['calendar_type'], 'islamic' ); ?>><?php echo esc_html__( 'Islamic', 'intl-datetime-calendar' ); ?></option>
+            <option value="islamic-civil" <?php selected( $options['calendar_type'], 'islamic-civil' ); ?>><?php echo esc_html__( 'Islamic (Civil)', 'intl-datetime-calendar' ); ?></option>
+            <option value="islamic-rgsa" <?php selected( $options['calendar_type'], 'islamic-rgsa' ); ?>><?php echo esc_html__( 'Islamic (Saudi Arabia)', 'intl-datetime-calendar' ); ?></option>
+            <option value="islamic-tbla" <?php selected( $options['calendar_type'], 'islamic-tbla' ); ?>><?php echo esc_html__( 'Islamic (Tabular)', 'intl-datetime-calendar' ); ?></option>
+            <option value="islamic-umalqura" <?php selected( $options['calendar_type'], 'islamic-umalqura' ); ?>><?php echo esc_html__( 'Islamic (Umm al-Qura)', 'intl-datetime-calendar' ); ?></option>
             <option value="iso8601" <?php selected( $options['calendar_type'], 'iso8601' ); ?>><?php echo esc_html__( 'ISO 8601', 'intl-datetime-calendar' ); ?></option>
             <option value="japanese" <?php selected( $options['calendar_type'], 'japanese' ); ?>><?php echo esc_html__( 'Japanese', 'intl-datetime-calendar' ); ?></option>
             <option value="persian" <?php selected( $options['calendar_type'], 'persian' ); ?>><?php echo esc_html__( 'Persian', 'intl-datetime-calendar' ); ?></option>
@@ -183,6 +267,7 @@ class Intl_DateTime_Calendar {
      * Render the settings page.
      */
     public function render_settings_page() {
+        $current_locale = str_replace( '_', '-', get_locale() );
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -190,10 +275,58 @@ class Intl_DateTime_Calendar {
                 <?php
                 settings_fields( 'intl_datetime_calendar' );
                 do_settings_sections( 'intl-datetime-calendar' );
-                submit_button();
                 ?>
+
+                <h2><?php echo esc_html__( 'Preview', 'intl-datetime-calendar' ); ?></h2>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><?php echo esc_html__( 'Sample Date', 'intl-datetime-calendar' ); ?></th>
+                        <td>
+                            <div id="intl-preview-container"
+                                 style="font-size: 1.2em; padding: 10px; background: #f0f0f1; border-left: 4px solid #2271b1; margin-bottom: 10px;">
+                                <span id="intl-date-preview"><?php echo esc_html__( 'Loading preview...', 'intl-datetime-calendar' ); ?></span>
+                            </div>
+                            <p class="description">
+                                <?php echo esc_html__( 'This preview shows how today\'s date will appear with the selected calendar system.', 'intl-datetime-calendar' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <?php submit_button(); ?>
             </form>
         </div>
+
+        <script>
+            (function () {
+                var locale = <?php echo wp_json_encode( $current_locale ); ?>;
+                var previewEl = document.getElementById('intl-date-preview');
+                var calendarSelect = document.getElementById('calendar_type');
+
+                function updatePreview() {
+                    if (!previewEl || !calendarSelect) return;
+
+                    var calendar = calendarSelect.value;
+                    var now = new Date();
+
+                    try {
+                        var formatter = new Intl.DateTimeFormat(locale, {
+                            calendar: calendar,
+                            dateStyle: 'full'
+                        });
+                        previewEl.textContent = formatter.format(now);
+                    } catch (e) {
+                        previewEl.textContent = now.toLocaleDateString(locale);
+                    }
+                }
+
+                if (calendarSelect) {
+                    calendarSelect.addEventListener('change', updatePreview);
+                }
+
+                updatePreview();
+            })();
+        </script>
         <?php
     }
 
@@ -201,22 +334,20 @@ class Intl_DateTime_Calendar {
      * Enqueue necessary scripts and styles.
      */
     public function enqueue_scripts() {
+        $suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
         wp_enqueue_script(
                 'intl-datetime-calendar-js',
-                plugin_dir_url( __FILE__ ) . 'js/intl-datetime-calendar.js',
-                array( 'jquery' ),
+                plugin_dir_url( __FILE__ ) . 'js/intl-datetime-calendar' . $suffix . '.js',
+                array(),
                 INTL_DATETIME_CALENDAR_VERSION,
                 true
         );
 
         // Get WordPress native settings
-        $options = get_option( 'intl_datetime_calendar_settings', array(
-                'calendar_type' => 'gregory',
-        ) );
-
-        // Get WordPress date/time formats
-        $wp_date_format = get_option( 'date_format', 'F j, Y' );
-        $wp_time_format = get_option( 'time_format', 'g:i a' );
+        $options        = $this->get_settings();
+        $wp_date_format = $this->get_date_format();
+        $wp_time_format = $this->get_time_format();
 
         // Get current locale based on context (frontend)
         $current_locale = get_locale();
@@ -262,11 +393,7 @@ class Intl_DateTime_Calendar {
 
                     if ( $datetime ) {
                         $timestamp = strtotime( $datetime ) * 1000; // Convert to milliseconds
-
-                        // Get plugin settings for calendar type only
-                        $options = get_option( 'intl_datetime_calendar_settings', array(
-                                'calendar_type' => 'gregory',
-                        ) );
+                        $options   = $this->get_settings();
 
                         $time->setAttribute( 'class', $time->getAttribute( 'class' ) . ' intl-datetime-element' );
                         $time->setAttribute( 'data-intl-datetime', $timestamp );
@@ -319,16 +446,13 @@ class Intl_DateTime_Calendar {
      */
     public function filter_post_date_block( $block_content, $block ) {
         $block_format = isset( $block['attrs']['format'] ) ? $block['attrs']['format'] : null;
-        $pattern      = '/<time\s+datetime="([^"]*)"\s*>(.*?)<\/time>/is';
+        $options      = $this->get_settings();
 
-        return preg_replace_callback( $pattern, function ( $matches ) use ( $block_format ) {
+        return preg_replace_callback( self::PATTERN_TIME_ELEMENT, function ( $matches ) use ( $block_format, $options ) {
             $datetime = $matches[1];
             $content  = $matches[2];
 
             $timestamp = strtotime( $datetime ) * 1000;
-            $options   = get_option( 'intl_datetime_calendar_settings', array(
-                    'calendar_type' => 'gregory',
-            ) );
 
             $output = '<time datetime="' . esc_attr( $datetime ) . '" ';
             $output .= 'class="intl-datetime-element" ';
@@ -355,16 +479,13 @@ class Intl_DateTime_Calendar {
      */
     public function filter_post_time_block( $block_content, $block ) {
         $block_format = isset( $block['attrs']['format'] ) ? $block['attrs']['format'] : null;
-        $pattern      = '/<time\s+datetime="([^"]*)"\s*>(.*?)<\/time>/is';
+        $options      = $this->get_settings();
 
-        return preg_replace_callback( $pattern, function ( $matches ) use ( $block_format ) {
+        return preg_replace_callback( self::PATTERN_TIME_ELEMENT, function ( $matches ) use ( $block_format, $options ) {
             $datetime = $matches[1];
             $content  = $matches[2];
 
             $timestamp = strtotime( $datetime ) * 1000;
-            $options   = get_option( 'intl_datetime_calendar_settings', array(
-                    'calendar_type' => 'gregory',
-            ) );
 
             $output = '<time datetime="' . esc_attr( $datetime ) . '" ';
             $output .= 'class="intl-datetime-element" ';
@@ -393,16 +514,13 @@ class Intl_DateTime_Calendar {
     public function filter_modified_date_blocks( $block_content, $block ) {
         if ( $block['blockName'] === 'core/post-modified-date' || $block['blockName'] === 'core/post-modified-time' ) {
             $block_format = isset( $block['attrs']['format'] ) ? $block['attrs']['format'] : null;
-            $pattern      = '/<time\s+datetime="([^"]*)"\s*>(.*?)<\/time>/is';
+            $options      = $this->get_settings();
 
-            return preg_replace_callback( $pattern, function ( $matches ) use ( $block, $block_format ) {
+            return preg_replace_callback( self::PATTERN_TIME_ELEMENT, function ( $matches ) use ( $block, $block_format, $options ) {
                 $datetime = $matches[1];
                 $content  = $matches[2];
 
                 $timestamp = strtotime( $datetime ) * 1000;
-                $options   = get_option( 'intl_datetime_calendar_settings', array(
-                        'calendar_type' => 'gregory',
-                ) );
 
                 $isDateBlock = $block['blockName'] === 'core/post-modified-date';
                 $isTimeBlock = $block['blockName'] === 'core/post-modified-time';
@@ -458,7 +576,7 @@ class Intl_DateTime_Calendar {
         $date_string = htmlspecialchars_decode( $date_string, ENT_QUOTES );
         $date_string = wp_strip_all_tags( $date_string );
 
-        if ( ! preg_match( '/^[\d\-\/\s:]+$/', $date_string ) ) {
+        if ( ! preg_match( self::PATTERN_DATE_CHARS, $date_string ) ) {
             $timestamp = strtotime( $date_string );
             if ( $timestamp === false ) {
                 return false;
@@ -474,9 +592,7 @@ class Intl_DateTime_Calendar {
      * Helper function to create consistent time element markup
      */
     public function create_time_element( $timestamp, $content, $is_date = true, $is_time = false ) {
-        $options = get_option( 'intl_datetime_calendar_settings', array(
-                'calendar_type' => 'gregory',
-        ) );
+        $options = $this->get_settings();
 
         $date = new DateTime();
         $date->setTimestamp( $timestamp / 1000 );
@@ -513,13 +629,13 @@ class Intl_DateTime_Calendar {
         $date_obj = new DateTime( $sanitized_date );
         if ( $is_date && ! $is_time ) {
             // Date only
-            $display_content = $date_obj->format( get_option( 'date_format' ) );
+            $display_content = $date_obj->format( $this->get_date_format() );
         } elseif ( ! $is_date && $is_time ) {
             // Time only
-            $display_content = $date_obj->format( get_option( 'time_format' ) );
+            $display_content = $date_obj->format( $this->get_time_format() );
         } else {
             // Both date and time
-            $display_content = $date_obj->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+            $display_content = $date_obj->format( $this->get_date_format() . ' ' . $this->get_time_format() );
         }
 
         return $this->create_time_element( $timestamp, $display_content, $is_date, $is_time );

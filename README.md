@@ -1,8 +1,9 @@
 # Intl DateTime Calendar
 
-[![WordPress Compatible](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)](https://wordpress.org/)
+[![WordPress Compatible](https://img.shields.io/badge/WordPress-5.0%20to%206.9-blue.svg)](https://wordpress.org/)
 [![PHP Version](https://img.shields.io/badge/PHP-7.0%2B-purple.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-yellow.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
+[![No jQuery](https://img.shields.io/badge/jQuery-Not%20Required-green.svg)](https://github.com/ttwrpz/intl-datetime-calendar)
 
 A WordPress plugin that displays dates and times in various calendar systems using the ECMAScript Internationalization API (Intl) while maintaining SEO friendliness.
 
@@ -13,7 +14,8 @@ A WordPress plugin that displays dates and times in various calendar systems usi
 - Automatic localization based on language settings
 - Full support for WordPress block editor (Gutenberg)
 - SEO-friendly implementation (original datetime values are preserved in the HTML)
-- Automatic updates from GitHub repository
+- Lightweight with no jQuery dependency
+- Optimized with minified JavaScript for production
 
 ## Usage
 
@@ -31,14 +33,20 @@ Once activated, the plugin will automatically format all dates and times on your
 
 The plugin supports the following calendar systems:
 
-- `gregory`: Gregorian (Western) Calendar
 - `buddhist`: Buddhist Calendar
 - `chinese`: Chinese Calendar
 - `coptic`: Coptic Calendar
+- `dangi`: Dangi (Korean) Calendar
+- `ethioaa`: Ethiopic (Amete Alem) Calendar
 - `ethiopic`: Ethiopic Calendar
+- `gregory`: Gregorian (Western) Calendar
 - `hebrew`: Hebrew Calendar
 - `indian`: Indian Calendar
 - `islamic`: Islamic Calendar
+- `islamic-civil`: Islamic (Civil) Calendar
+- `islamic-rgsa`: Islamic (Saudi Arabia) Calendar
+- `islamic-tbla`: Islamic (Tabular) Calendar
+- `islamic-umalqura`: Islamic (Umm al-Qura) Calendar
 - `iso8601`: ISO 8601 Calendar
 - `japanese`: Japanese Calendar
 - `persian`: Persian Calendar
