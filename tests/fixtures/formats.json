@@ -151,6 +151,9 @@
     "a",
     "A",
     "FjY",
-    "l F"
+    "l F",
+    "Y-m-d \u0007\t H:i",
+    "d/m/Y H:i:s",
+    "Y-m-d \\a\\t H:i"
   ]
 }

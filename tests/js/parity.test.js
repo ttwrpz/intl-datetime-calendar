@@ -13,9 +13,13 @@
  * browser leaves it alone.
  *
  * So a format built only from numbers and literals is compared byte for byte,
- * and a format containing a name is compared with the names masked. A wrong
- * field, a wrong order, a lost separator, a bad width or a digit where a name
- * belongs still fails. Only the wording itself may vary.
+ * and a format containing a name is compared by its numbers alone: the digit
+ * runs and where they sit. A wrong field, a wrong order, a bad width, a lost
+ * separator between numbers or a digit where a name belongs still fails.
+ *
+ * Wording itself is covered by tests/js/robustness.test.js, which checks the
+ * rules the engine is responsible for against the platform's own data rather
+ * than against a fixed string.
  */
 
 import {test} from 'node:test';
@@ -34,10 +38,16 @@ const fixtures = JSON.parse(readFileSync(join(here, '../fixtures/formats.json'),
 const NAME_FIELDS = ['F', 'M', 'D', 'l', 'a', 'A'];
 
 /**
- * A run of letters, including the punctuation scripts use to mark an
- * abbreviation: the period in Thai "อา.", the gershayim in Hebrew "אחה״צ".
+ * Everything that is not a decimal digit.
+ *
+ * Enumerating what belongs inside a word does not work: Thai ends an
+ * abbreviation with a period, Hebrew uses a gershayim, Persian joins one with
+ * an invisible zero width non-joiner, and the next script will bring
+ * something else again. What the engine actually decides is where the numbers
+ * go and how wide they are, so the digits are the structure and everything
+ * between them is masked.
  */
-const NAMES = /[\p{L}\p{M}][\p{L}\p{M}.׳״'’]*/gu;
+const BETWEEN_NUMBERS = /\P{Nd}+/gu;
 
 /**
  * Whether a format asks for any CLDR word.
@@ -52,13 +62,13 @@ function hasName(format) {
 }
 
 /**
- * Replace every word with a placeholder, leaving the structure behind.
+ * Reduce a rendered date to its numbers and where they sit.
  *
  * @param {string} value Rendered date.
- * @returns {string} The same date with its words masked.
+ * @returns {string} The digit runs, separated by a placeholder.
  */
-function maskNames(value) {
-    return value.replace(NAMES, '#');
+function numberSkeleton(value) {
+    return value.replace(BETWEEN_NUMBERS, '#');
 }
 
 /** Render the fixture matrix with the PHP engine. */
@@ -137,10 +147,10 @@ test('PHP and JavaScript renderers agree on every fixture', (t) => {
                     continue;
                 }
 
-                if (maskNames(actual) !== maskNames(expected)) {
+                if (numberSkeleton(actual) !== numberSkeleton(expected)) {
                     mismatches.push(
-                        `${key}\n    php=${JSON.stringify(expected)} -> ${JSON.stringify(maskNames(expected))}` +
-                            `\n    js =${JSON.stringify(actual)} -> ${JSON.stringify(maskNames(actual))}`
+                        `${key}\n    php=${JSON.stringify(expected)} -> ${JSON.stringify(numberSkeleton(expected))}` +
+                            `\n    js =${JSON.stringify(actual)} -> ${JSON.stringify(numberSkeleton(actual))}`
                     );
                 }
             }
