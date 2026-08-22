@@ -1,0 +1,27 @@
+{
+    "name": "ttwrpz/intl-datetime-calendar",
+    "description": "Display WordPress dates and times in any calendar system using the Intl APIs.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.1"
+    },
+    "suggest": {
+        "ext-intl": "Enables server-side rendering of non-Gregorian calendars, removing the client-side conversion flash."
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.10",
+        "wp-coding-standards/wpcs": "^3.1",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "yoast/phpunit-polyfills": "^3.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "lint:fix": "phpcbf"
+    }
+}
