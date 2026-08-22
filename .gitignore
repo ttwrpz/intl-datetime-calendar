@@ -1,0 +1,29 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Build output is committed (WP.org ships from the repo), but caches are not
+/.phpunit.result.cache
+/.phpcs-cache
+/coverage/
+
+# An IDE file watcher was observed minifying every .js in place, which
+# overwrote the real build output. Only js/*.min.js from build.mjs ships.
+*.min.min.js
+/build.min.js
+/js/src/*.min.js
+/tests/**/*.min.js
+
+# Editors
+/.idea/
+/.vscode/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local
+*.log
+/dist/
+tests/.code-identity.json

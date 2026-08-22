@@ -62,32 +62,6 @@
     }
     return formatter;
   }
-  var capabilityCache = /* @__PURE__ */ new Map();
-  function canRender(settings) {
-    const locale = settings.locale || "en";
-    const calendar = settings.calendar || "";
-    if (!calendar) {
-      return true;
-    }
-    const key = locale + "|" + calendar;
-    if (!capabilityCache.has(key)) {
-      let usable = false;
-      try {
-        const formatter = new Intl.DateTimeFormat(locale, {
-          calendar,
-          year: "numeric",
-          month: "numeric",
-          day: "numeric"
-        });
-        const hasYear = formatter.formatToParts(/* @__PURE__ */ new Date()).some((part) => part.type === "year");
-        usable = formatter.resolvedOptions().calendar === calendar && hasYear;
-      } catch (e) {
-        usable = false;
-      }
-      capabilityCache.set(key, usable);
-    }
-    return capabilityCache.get(key);
-  }
   function render(date, format, settings) {
     const locale = settings.locale || "en";
     const timeZone = settings.timeZone || void 0;
@@ -409,115 +383,37 @@
     return new Date(thursday).getUTCFullYear();
   }
 
-  // js/src/index.js
-  var PROCESSED = "data-intl-done";
-  var RELATIVE = "human-diff";
-  function siteSettings() {
-    const settings = window.intlDateTimeCalendar || {};
-    return {
-      locale: settings.locale || "en",
-      calendar: settings.calendar || "gregory",
-      numberingSystem: settings.numberingSystem || "",
-      timeZone: settings.timeZone || void 0,
-      dateFormat: settings.dateFormat || "F j, Y",
-      timeFormat: settings.timeFormat || "g:i a"
-    };
-  }
-  function elementSettings(element, site) {
-    return {
-      locale: element.getAttribute("data-intl-locale") || site.locale,
-      calendar: element.getAttribute("data-intl-calendar") || site.calendar,
-      numberingSystem: element.getAttribute("data-intl-numbering") || site.numberingSystem,
-      timeZone: element.getAttribute("data-intl-timezone") || site.timeZone
-    };
-  }
-  function relativeTime(date, locale) {
-    if (typeof Intl === "undefined" || typeof Intl.RelativeTimeFormat !== "function") {
-      return "";
-    }
-    const units = [
-      ["year", 31536e3],
-      ["month", 2592e3],
-      ["week", 604800],
-      ["day", 86400],
-      ["hour", 3600],
-      ["minute", 60],
-      ["second", 1]
-    ];
-    const elapsed = (date.getTime() - Date.now()) / 1e3;
-    const magnitude = Math.abs(elapsed);
-    for (const [unit, seconds] of units) {
-      if (magnitude >= seconds || unit === "second") {
-        const value = Math.round(elapsed / seconds);
-        try {
-          return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(value, unit);
-        } catch (e) {
-          return "";
-        }
-      }
-    }
-    return "";
-  }
-  function convert(element, site) {
-    if (element.getAttribute("data-intl-rendered") === "server") {
-      element.setAttribute(PROCESSED, "");
-      return;
-    }
-    const timestamp = parseInt(element.getAttribute("data-intl-timestamp"), 10);
-    const format = element.getAttribute("data-intl-format");
-    if (!format || Number.isNaN(timestamp)) {
-      return;
-    }
-    element.setAttribute(PROCESSED, "");
-    const date = new Date(timestamp * 1e3);
-    if (Number.isNaN(date.getTime())) {
-      return;
-    }
-    const settings = elementSettings(element, site);
-    if (format !== RELATIVE && !canRender(settings)) {
-      return;
-    }
-    let text;
-    try {
-      text = format === RELATIVE ? relativeTime(date, settings.locale) : render(date, format, settings);
-    } catch (e) {
-      return;
-    }
-    if (!text) {
-      return;
-    }
-    const link = element.querySelector("a");
-    (link || element).textContent = text;
-  }
-  function convertWithin(root, site) {
-    if (root instanceof Element && root.matches(".intl-datetime-element")) {
-      convert(root, site);
-    }
-    const selector = ".intl-datetime-element:not([" + PROCESSED + "])";
-    root.querySelectorAll(selector).forEach((element) => convert(element, site));
-  }
+  // js/src/admin.js
   function start() {
-    const site = siteSettings();
-    convertWithin(document, site);
-    if (typeof MutationObserver !== "function") {
+    const settings = window.intlDateTimeCalendarAdmin || {};
+    const output = document.getElementById("intl-preview-date");
+    const calendar = document.getElementById("intl-calendar-type");
+    const numbering = document.getElementById("intl-numbering-system");
+    if (!output || !calendar) {
       return;
     }
-    const observer = new MutationObserver((records) => {
-      for (const record of records) {
-        for (const node of record.addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            convertWithin(node, site);
-          }
-        }
+    const update = () => {
+      const format = settings.dateFormat || "F j, Y";
+      try {
+        output.textContent = render(/* @__PURE__ */ new Date(), format, {
+          locale: settings.locale || "en",
+          calendar: calendar.value,
+          numberingSystem: numbering ? numbering.value : "",
+          timeZone: settings.timeZone || void 0
+        });
+      } catch (e) {
+        output.textContent = (/* @__PURE__ */ new Date()).toLocaleDateString(settings.locale || "en");
       }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
-  if (typeof Intl !== "undefined" && typeof Intl.DateTimeFormat === "function") {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", start);
-    } else {
-      start();
+    };
+    calendar.addEventListener("change", update);
+    if (numbering) {
+      numbering.addEventListener("change", update);
     }
+    update();
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
   }
 })();

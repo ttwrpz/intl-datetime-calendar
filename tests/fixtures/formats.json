@@ -1,0 +1,156 @@
+{
+  "_comment": "Shared fixture matrix. Rendered by both src/Format/CalendarRenderer.php and js/src/format.js; CI fails if the two disagree on any cell.",
+  "moments": [
+    "2025-05-04T13:05:07Z",
+    "2024-02-29T00:00:00Z",
+    "2025-01-01T23:59:59Z",
+    "2025-12-31T12:00:00Z",
+    "1999-07-04T06:30:00Z",
+    "2026-08-19T09:15:45Z"
+  ],
+  "locales": [
+    {
+      "locale": "en-US",
+      "calendar": "gregory",
+      "numberingSystem": "",
+      "timeZone": "UTC"
+    },
+    {
+      "locale": "th-TH",
+      "calendar": "buddhist",
+      "numberingSystem": "",
+      "timeZone": "Asia/Bangkok"
+    },
+    {
+      "locale": "th-TH",
+      "calendar": "buddhist",
+      "numberingSystem": "thai",
+      "timeZone": "Asia/Bangkok"
+    },
+    {
+      "locale": "ar-SA",
+      "calendar": "islamic-umalqura",
+      "numberingSystem": "arab",
+      "timeZone": "Asia/Riyadh"
+    },
+    {
+      "locale": "fa-IR",
+      "calendar": "persian",
+      "numberingSystem": "arabext",
+      "timeZone": "Asia/Tehran"
+    },
+    {
+      "locale": "ja-JP",
+      "calendar": "japanese",
+      "numberingSystem": "",
+      "timeZone": "Asia/Tokyo"
+    },
+    {
+      "locale": "he-IL",
+      "calendar": "hebrew",
+      "numberingSystem": "",
+      "timeZone": "Asia/Jerusalem"
+    },
+    {
+      "locale": "ru-RU",
+      "calendar": "gregory",
+      "numberingSystem": "",
+      "timeZone": "Europe/Moscow"
+    },
+    {
+      "locale": "cs-CZ",
+      "calendar": "gregory",
+      "numberingSystem": "",
+      "timeZone": "Europe/Prague"
+    },
+    {
+      "locale": "pl-PL",
+      "calendar": "gregory",
+      "numberingSystem": "",
+      "timeZone": "Europe/Warsaw"
+    },
+    {
+      "locale": "zh-CN",
+      "calendar": "chinese",
+      "numberingSystem": "hanidec",
+      "timeZone": "Asia/Shanghai"
+    },
+    {
+      "locale": "zh-CN",
+      "calendar": "gregory",
+      "numberingSystem": "hanidec",
+      "timeZone": "Asia/Shanghai"
+    },
+    {
+      "locale": "hi-IN",
+      "calendar": "indian",
+      "numberingSystem": "deva",
+      "timeZone": "Asia/Kolkata"
+    },
+    {
+      "locale": "bn-BD",
+      "calendar": "gregory",
+      "numberingSystem": "beng",
+      "timeZone": "Asia/Dhaka"
+    },
+    {
+      "locale": "my-MM",
+      "calendar": "gregory",
+      "numberingSystem": "mymr",
+      "timeZone": "Asia/Yangon"
+    },
+    {
+      "locale": "ja-JP",
+      "calendar": "gregory",
+      "numberingSystem": "fullwide",
+      "timeZone": "Asia/Tokyo"
+    }
+  ],
+  "formats": [
+    "F j, Y",
+    "Y-m-d",
+    "d/m/Y",
+    "j F Y",
+    "l, j F Y",
+    "D, d M Y",
+    "g:i a",
+    "g:i A",
+    "h:i A",
+    "H:i",
+    "H:i:s",
+    "Y-m-d H:i:s",
+    "l, F jS, Y",
+    "j F Y \\a\\t g:i a",
+    "d.m.Y",
+    "M j",
+    "n/j/y",
+    "N w",
+    "z",
+    "t",
+    "L",
+    "mm",
+    "YY",
+    "GG",
+    "FF",
+    "jj",
+    "ii",
+    "ss",
+    "dd",
+    "g:ia",
+    "Ymd",
+    "F",
+    "M",
+    "l",
+    "D",
+    "ll",
+    "DD",
+    "lD",
+    "j",
+    "Y",
+    "g",
+    "a",
+    "A",
+    "FjY",
+    "l F"
+  ]
+}

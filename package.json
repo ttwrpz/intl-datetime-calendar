@@ -1,0 +1,16 @@
+{
+    "name": "intl-datetime-calendar",
+    "version": "2.0.2",
+    "private": true,
+    "description": "Build and test tooling for the Intl DateTime Calendar WordPress plugin.",
+    "license": "GPL-2.0-or-later",
+    "type": "module",
+    "scripts": {
+        "build": "node build.mjs",
+        "test": "node --test tests/js/",
+        "check": "npm run build -- --check && npm test"
+    },
+    "devDependencies": {
+        "esbuild": "^0.24.0"
+    }
+}

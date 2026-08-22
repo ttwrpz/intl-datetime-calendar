@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<ruleset name="Intl DateTime Calendar">
+    <description>Coding standards for the Intl DateTime Calendar plugin.</description>
+
+    <file>.</file>
+    <exclude-pattern>/vendor/</exclude-pattern>
+    <exclude-pattern>/node_modules/</exclude-pattern>
+    <exclude-pattern>/js/</exclude-pattern>
+    <!-- The test harness deliberately stubs WordPress and is never shipped. -->
+    <exclude-pattern>/tests/</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <config name="minimum_wp_version" value="6.9"/>
+    <config name="testVersion" value="8.1-"/>
+
+    <rule ref="WordPress">
+        <!-- The plugin ships PSR-4 class files, not WordPress file naming. -->
+        <exclude name="WordPress.Files.FileName"/>
+    </rule>
+
+    <rule ref="PHPCompatibilityWP"/>
+
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="intl-datetime-calendar"/>
+            </property>
+        </properties>
+    </rule>
+
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="intl_datetime_calendar"/>
+                <element value="INTL_DATETIME_CALENDAR"/>
+                <element value="Intl_DateTime_Calendar"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

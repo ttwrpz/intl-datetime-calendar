@@ -1,0 +1,20 @@
+# Everything here is excluded from the WordPress.org release build.
+.git
+.github
+.gitignore
+.distignore
+.idea
+.vscode
+node_modules
+vendor
+tests
+js/src
+composer.json
+composer.lock
+package.json
+package-lock.json
+phpcs.xml.dist
+phpunit.xml.dist
+build.mjs
+eslint.config.mjs
+README.md

@@ -1,130 +1,148 @@
 # Intl DateTime Calendar
 
-[![WordPress Compatible](https://img.shields.io/badge/WordPress-5.0%20to%206.9-blue.svg)](https://wordpress.org/)
-[![PHP Version](https://img.shields.io/badge/PHP-7.0%2B-purple.svg)](https://php.net/)
+[![WordPress](https://img.shields.io/badge/WordPress-6.5%20to%207.1-blue.svg)](https://wordpress.org/)
+[![PHP](https://img.shields.io/badge/PHP-8.1%2B-purple.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-yellow.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![No jQuery](https://img.shields.io/badge/jQuery-Not%20Required-green.svg)](https://github.com/ttwrpz/intl-datetime-calendar)
 
-A WordPress plugin that displays dates and times in various calendar systems using the ECMAScript Internationalization API (Intl) while maintaining SEO friendliness.
+A WordPress plugin that writes dates in any calendar system. It uses the digits and wording your readers expect. It leaves your database and your machine readable dates untouched.
 
-## Features
+## What it does
 
-- Support for multiple calendar systems (Gregorian, Buddhist, Chinese, Hebrew, Islamic, etc.)
-- Configurable date and time formatting styles
-- Automatic localization based on language settings
-- Full support for WordPress block editor (Gutenberg)
-- SEO-friendly implementation (original datetime values are preserved in the HTML)
-- Lightweight with no jQuery dependency
-- Optimized with minified JavaScript for production
+Pick a calendar in Settings and your posts, archives and comments start showing dates the way your readers write them.
+
+```
+Gregorian    May 4, 2025
+Buddhist     4 พฤษภาคม 2568        with Thai digits: ๔ พฤษภาคม ๒๕๖๘
+Hijri        ٦ ذو القعدة ١٤٤٦
+Persian      ۱۴ اردیبهشت ۱۴۰۴
+Japanese     令和7年5月4日
+Hebrew       ו׳ באייר תשפ״ה
+```
+
+Nothing in the database changes. The HTML `datetime` attribute that search engines read stays Gregorian and unambiguous, so only the text a person sees is converted.
+
+## How it works
+
+Where the PHP `intl` extension is available, dates are converted on the server through ICU. Readers see the right calendar straight away, there is no flicker while the page loads, dates are right for anyone without JavaScript, and the plugin adds no JavaScript to your pages at all.
+
+Where `intl` is missing, the same conversion runs in the browser instead and a small script is loaded. Site Health reports which of the two your site is using.
+
+Both paths render from a single format specification. CI compares them against each other on every commit so they cannot drift.
+
+## Requirements
+
+- WordPress 6.5 or newer
+- PHP 8.1 or newer
+- The PHP `intl` extension is recommended but not required
 
 ## Usage
 
-Once activated, the plugin will automatically format all dates and times on your site according to your selected calendar system and locale.
+### Settings
 
-### Configuration
+Go to Settings, then Intl DateTime Calendar. Choose a calendar. If you want something other than your language default, choose your digits. The preview shows today's date in whatever you pick.
 
-1. Go to 'Settings' > 'Intl DateTime Calendar' in the WordPress admin
-2. Select your preferred calendar system (Gregorian, Buddhist, Chinese, etc.)
-3. Choose your locale (e.g., 'en', 'th-TH', 'ja-JP')
-4. Set date and time style preferences (Full, Long, Medium, Short)
-5. Save changes
+Your existing WordPress date format is used as is, including any custom format set on an individual block.
 
-### Calendar Systems
-
-The plugin supports the following calendar systems:
-
-- `buddhist`: Buddhist Calendar
-- `chinese`: Chinese Calendar
-- `coptic`: Coptic Calendar
-- `dangi`: Dangi (Korean) Calendar
-- `ethioaa`: Ethiopic (Amete Alem) Calendar
-- `ethiopic`: Ethiopic Calendar
-- `gregory`: Gregorian (Western) Calendar
-- `hebrew`: Hebrew Calendar
-- `indian`: Indian Calendar
-- `islamic`: Islamic Calendar
-- `islamic-civil`: Islamic (Civil) Calendar
-- `islamic-rgsa`: Islamic (Saudi Arabia) Calendar
-- `islamic-tbla`: Islamic (Tabular) Calendar
-- `islamic-umalqura`: Islamic (Umm al-Qura) Calendar
-- `iso8601`: ISO 8601 Calendar
-- `japanese`: Japanese Calendar
-- `persian`: Persian Calendar
-- `roc`: Republic of China Calendar
-
-### Date and Time Styles
-
-Each style provides a different level of formatting detail:
-
-- `full`: e.g., "Wednesday, December 31, 2023"
-- `long`: e.g., "December 31, 2023"
-- `medium`: e.g., "Dec 31, 2023"
-- `short`: e.g., "12/31/23"
-
-### Advanced Usage
-
-#### Manual Integration
-
-If you need to format a specific date manually in your theme or plugin, you can use this format:
+### In a theme
 
 ```php
-<?php
-$timestamp = strtotime('2023-12-31 23:59:59') * 1000; // Convert to milliseconds for JS
-?>
-
-<span class="intl-datetime intl-datetime-auto" 
-      data-intl-datetime="<?php echo esc_attr($timestamp); ?>" 
-      data-calendar="buddhist" 
-      data-locale="th-TH" 
-      data-date-style="full" 
-      data-time-style="long">
-    December 31, 2023
-</span>
+if ( function_exists( 'intl_datetime_calendar_format_date' ) ) {
+    echo intl_datetime_calendar_format_date( '2026-08-19' );
+    echo intl_datetime_calendar_format_date( $timestamp, 'l, j F Y' );
+    echo intl_datetime_calendar_format_date( $post_date_object, 'd/m/Y' );
+}
 ```
 
-#### JavaScript API
+Accepts a date string, a Unix timestamp or any `DateTimeInterface`, and returns a complete `<time>` element.
 
-You can also format dates programmatically using the provided JavaScript API:
+### As a shortcode
 
-```javascript
-// Example: Format the current date
-const timestamp = Date.now();
-const options = {
-    calendar: 'buddhist',
-    locale: 'th-TH',
-    dateStyle: 'full',
-    timeStyle: 'long'
-};
-
-const formatter = new Intl.DateTimeFormat(options.locale, {
-    calendar: options.calendar,
-    dateStyle: options.dateStyle,
-    timeStyle: options.timeStyle
-});
-
-const formattedDate = formatter.format(new Date(timestamp));
-console.log(formattedDate);
+```
+[intl_datetime date="2026-08-19"]
+[intl_datetime date="2026-08-19 14:30" type="datetime"]
+[intl_datetime date="2026-08-19" format="l, j F Y"]
 ```
 
-## Browser Compatibility
+A date that cannot be read is shown back to you unchanged. It is never quietly turned into a different date.
 
-This plugin utilizes the Intl API, which is supported in all modern browsers:
+## Filters
 
-- Chrome 76+
-- Firefox 72+
-- Safari 14+
-- Edge 79+
+| Filter | Purpose |
+| --- | --- |
+| `intl_datetime_calendar_calendar` | Choose the calendar per request, for example a different one per language |
+| `intl_datetime_calendar_locale` | Override the locale dates are written in |
+| `intl_datetime_calendar_numbering_system` | Override which digits are used |
+| `intl_datetime_calendar_should_convert` | Leave particular dates in the Gregorian calendar |
 
-For older browsers, the plugin will fall back to the browser's default date formatting.
+A multilingual site can give each language its own calendar:
 
-## Updates
+```php
+add_filter( 'intl_datetime_calendar_calendar', function ( $calendar, $locale ) {
+    if ( str_starts_with( $locale, 'th' ) ) {
+        return 'buddhist';
+    }
 
-The plugin automatically checks for updates from the GitHub repository. When a new version is released, you'll receive an update notification in your WordPress admin dashboard.
+    if ( str_starts_with( $locale, 'ar' ) ) {
+        return 'islamic-umalqura';
+    }
 
-## Contributing
+    return $calendar;
+}, 10, 2 );
+```
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+If another plugin reads dates back out of your rendered pages, leave those alone:
+
+```php
+add_filter( 'intl_datetime_calendar_should_convert', function ( $convert, $format ) {
+    return is_feed() ? false : $convert;
+}, 10, 2 );
+```
+
+## Supported calendars
+
+`buddhist`, `chinese`, `coptic`, `dangi`, `ethioaa`, `ethiopic`, `gregory`, `hebrew`, `indian`, `islamic`, `islamic-civil`, `islamic-rgsa`, `islamic-tbla`, `islamic-umalqura`, `iso8601`, `japanese`, `persian`, `roc`
+
+## Supported digits
+
+Every decimal numbering system Unicode defines, around 77 in total. The settings screen lists the familiar ones first (`latn`, `arab`, `arabext`, `beng`, `deva`, `thai`, `laoo`, `mymr`, `tibt`, `guru`, `gujr`, `knda`, `mlym`, `orya`, `tamldec`, `telu`, `sinh`, `khmr`, `hanidec`, `fullwide`) and then every other script, each shown next to a sample of its digits. Leave it unset to follow the site language.
+
+The list is filtered against what the server's ICU actually supports, so an option is never offered that the server cannot honour. Algorithmic systems such as Roman numerals are excluded, because they are not ten positional digits and cannot write a date.
+
+## Development
+
+```bash
+composer install
+npm install
+
+npm run build          # rebuild js/ from js/src/
+node build.mjs --check # fail if the committed bundles are stale
+
+php tests/php/native-parity.php   # the engine must match PHP's own date()
+php tests/php/regressions.php     # bugs fixed in 2.0.0 must stay fixed
+npm test                          # the PHP and browser renderers must agree
+
+vendor/bin/phpcs
+```
+
+### Layout
+
+```
+src/Format/     the format specification and the ICU renderer
+src/Render/     where dates and blocks are converted
+src/Settings/   options and the settings screen
+src/Support/    Site Health
+js/src/         browser sources, bundled into js/ by build.mjs
+tests/          parity and regression suites
+```
+
+### Notes on the engine
+
+Two behaviours drive the design and are worth knowing before changing it.
+
+ICU picks different word forms depending on which fields surround a date. Russian writes `май` for a month on its own but `мая` inside a full date, and Czech, Polish and Catalan behave the same way. Fields are therefore always resolved in the context of the whole format rather than one at a time.
+
+The server renders through ICU pattern letters, which give exact control over width, while the browser renders through Intl option matching, where the locale decides. Widths are reapplied in the browser so the two agree. One difference remains, listed in `tests/js/parity.test.js`, and the test fails if it ever stops applying so the exception cannot outlive the platform behaviour that caused it.
 
 ## License
 
-This plugin is licensed under the GPL v2 or later.
+GPL v2 or later.
