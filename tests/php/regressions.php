@@ -126,6 +126,47 @@ if ( CalendarRenderer::is_available() ) {
 
 	// A non-string or empty format must never reach the renderer.
 	check( 'an empty format is passed through', 'x', \Intl_DateTime_Calendar\Render\DateFilter::filter_date( 'x', '', $timestamp, $zone ) );
+
+	echo "\nLocales ICU has no data for\n";
+
+	// WordPress translates more languages than ICU carries. Asking ICU for one
+	// of those left an unconstructed formatter that raised on first use, taking
+	// the whole front end down with a white screen.
+	foreach ( array( 'azb', 'skr', 'haz', 'kmr' ) as $unsupported ) {
+		$renderer = new CalendarRenderer( $unsupported, 'islamic-umalqura', 'arab', $zone );
+		$failed   = false;
+
+		try {
+			// Repeated, because the first failure used to be cached and reused.
+			for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+				$rendered = $renderer->render( new DateTimeImmutable( '2026-08-23', $zone ), 'Y-m-d' );
+			}
+		} catch ( Throwable $e ) {
+			$failed = true;
+		}
+
+		check( $unsupported . ' does not fatal', false, $failed );
+		check( $unsupported . ' defers to WordPress', '', $rendered );
+	}
+
+	// The date must survive the filter untouched rather than vanishing.
+	intl_test_set_option( 'locale', 'azb' );
+	\Intl_DateTime_Calendar\Settings\Options::flush();
+	check(
+		'an unsupported locale keeps WordPress own date',
+		'2026-08-23',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_date( '2026-08-23', 'Y-m-d', $timestamp, $zone )
+	);
+	intl_test_set_option( 'locale', 'th_TH' );
+	\Intl_DateTime_Calendar\Settings\Options::flush();
+
+	// An empty locale once composed into "-u-ca-islamic", which is not a locale.
+	$empty = new CalendarRenderer( '', 'islamic-umalqura', 'arab', $zone );
+	check( 'an empty locale still renders', true, '' !== $empty->render( new DateTimeImmutable( '2026-08-23', $zone ), 'Y-m-d' ) );
+
+	// A region ICU lacks should fall back to the language, not give up.
+	$region = new CalendarRenderer( 'ar_XX', 'gregory', '', $zone );
+	check( 'an unknown region falls back to the language', true, '' !== $region->render( new DateTimeImmutable( '2026-08-23', $zone ), 'j F Y' ) );
 } else {
 	echo "\nSKIP calendar rendering: ext-intl is not installed\n";
 }

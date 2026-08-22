@@ -3,7 +3,7 @@
  * Plugin Name: Intl DateTime Calendar
  * Plugin URI: https://github.com/ttwrpz/intl-datetime-calendar
  * Description: Display dates and times in any calendar system, with the digits and wording your readers expect.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Requires PHP: 8.1
  * Requires at least: 6.5
  * Tested up to: 7.1
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Current plugin version.
  */
-define( 'INTL_DATETIME_CALENDAR_VERSION', '2.0.0' );
+define( 'INTL_DATETIME_CALENDAR_VERSION', '2.0.1' );
 
 /**
  * Absolute path to this file, used to build asset URLs.

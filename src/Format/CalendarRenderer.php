@@ -12,6 +12,7 @@ use DateTimeZone;
 use IntlCalendar;
 use IntlDateFormatter;
 use NumberFormatter;
+use Throwable;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -132,7 +133,12 @@ final class CalendarRenderer {
 	 * @return string Locale with Unicode extension keywords appended.
 	 */
 	private static function build_locale( string $locale, string $calendar, string $numbering_system ): string {
-		$locale     = str_replace( '_', '-', $locale );
+		$locale = str_replace( '_', '-', trim( $locale ) );
+
+		if ( '' === $locale ) {
+			$locale = 'en';
+		}
+
 		$extensions = '';
 
 		if ( '' !== $calendar ) {
@@ -155,6 +161,12 @@ final class CalendarRenderer {
 	 * @return string Rendered date.
 	 */
 	public function render( DateTimeImmutable $date, string $php_format ): string {
+		// Empty means the caller keeps what WordPress produced, which for a
+		// locale ICU lacks is still correctly translated by WordPress.
+		if ( ! $this->is_usable() ) {
+			return '';
+		}
+
 		$date    = $date->setTimezone( $this->timezone );
 		$pattern = '';
 
@@ -255,6 +267,10 @@ final class CalendarRenderer {
 	private function calendar_field( DateTimeImmutable $date, string $char ): int {
 		$calendar = IntlCalendar::createInstance( $this->timezone, $this->locale );
 
+		if ( ! $calendar instanceof IntlCalendar ) {
+			return 0;
+		}
+
 		// ISO-8601 week rules, matching PHP's W and o.
 		$calendar->setFirstDayOfWeek( IntlCalendar::DOW_MONDAY );
 		$calendar->setMinimalDaysInFirstWeek( 4 );
@@ -285,34 +301,105 @@ final class CalendarRenderer {
 	 */
 	private function render_raw( DateTimeImmutable $date, string $pattern ): string {
 		$formatter = $this->formatter();
-		$formatter->setPattern( $pattern );
 
-		$rendered = $formatter->format( $date );
+		if ( null === $formatter ) {
+			return '';
+		}
+
+		try {
+			$formatter->setPattern( $pattern );
+			$rendered = $formatter->format( $date );
+		} catch ( Throwable $e ) {
+			return '';
+		}
 
 		return false === $rendered ? '' : $rendered;
 	}
 
 	/**
-	 * Get the formatter for this locale and timezone.
+	 * Whether ICU accepted this locale.
 	 *
-	 * @return IntlDateFormatter Configured formatter.
+	 * @return bool True when dates can be rendered.
 	 */
-	private function formatter(): IntlDateFormatter {
+	public function is_usable(): bool {
+		return null !== $this->formatter();
+	}
+
+	/**
+	 * Get the formatter for this locale and timezone, or null.
+	 *
+	 * WordPress translates languages ICU has no data for, such as South
+	 * Azerbaijani and Saraiki. ICU rejects those locales, and a rejected
+	 * constructor leaves an object that raises on first use rather than
+	 * reporting the failure, so the result is proved before it is kept.
+	 *
+	 * @return IntlDateFormatter|null Formatter, or null when unsupported.
+	 */
+	private function formatter(): ?IntlDateFormatter {
 		$key = $this->locale . '|' . $this->timezone->getName();
 
-		if ( ! isset( self::$formatters[ $key ] ) ) {
-			$calendar = IntlCalendar::createInstance( $this->timezone, $this->locale );
+		if ( ! array_key_exists( $key, self::$formatters ) ) {
+			self::$formatters[ $key ] = null;
 
-			self::$formatters[ $key ] = new IntlDateFormatter(
-				$this->locale,
-				IntlDateFormatter::NONE,
-				IntlDateFormatter::NONE,
-				$this->timezone,
-				$calendar
-			);
+			foreach ( $this->locale_candidates() as $candidate ) {
+				$formatter = self::create_formatter( $candidate, $this->timezone );
+
+				if ( null !== $formatter ) {
+					self::$formatters[ $key ] = $formatter;
+					break;
+				}
+			}
 		}
 
 		return self::$formatters[ $key ];
+	}
+
+	/**
+	 * Locales to try, most specific first.
+	 *
+	 * A region ICU lacks, such as ar-XX, still works without the region.
+	 *
+	 * @return array<int, string> Candidate locales.
+	 */
+	private function locale_candidates(): array {
+		$candidates = array( $this->locale );
+
+		$language = strtok( $this->locale, '-' );
+		$keywords = strstr( $this->locale, '-u-' );
+
+		if ( is_string( $language ) && '' !== $language && $language !== $this->locale ) {
+			$candidates[] = false === $keywords ? $language : $language . $keywords;
+		}
+
+		return array_values( array_unique( $candidates ) );
+	}
+
+	/**
+	 * Build a formatter, or null when ICU will not accept the locale.
+	 *
+	 * @param string       $locale   Locale to try.
+	 * @param DateTimeZone $timezone Timezone to resolve dates against.
+	 *
+	 * @return IntlDateFormatter|null Working formatter, or null.
+	 */
+	private static function create_formatter( string $locale, DateTimeZone $timezone ): ?IntlDateFormatter {
+		try {
+			$calendar = IntlCalendar::createInstance( $timezone, $locale );
+
+			$formatter = new IntlDateFormatter(
+				$locale,
+				IntlDateFormatter::NONE,
+				IntlDateFormatter::NONE,
+				$timezone,
+				$calendar instanceof IntlCalendar ? $calendar : null
+			);
+
+			$formatter->getPattern();
+		} catch ( Throwable $e ) {
+			return null;
+		}
+
+		return $formatter;
 	}
 
 	/**
@@ -331,12 +418,17 @@ final class CalendarRenderer {
 		}
 
 		if ( ! isset( self::$digits[ $this->locale ] ) ) {
-			$number_formatter = new NumberFormatter( $this->locale, NumberFormatter::DECIMAL );
-			$number_formatter->setAttribute( NumberFormatter::GROUPING_USED, 0 );
-
 			$table = array();
-			for ( $digit = 0; $digit <= 9; $digit++ ) {
-				$table[ $digit ] = $number_formatter->format( $digit );
+
+			try {
+				$number_formatter = new NumberFormatter( $this->locale, NumberFormatter::DECIMAL );
+				$number_formatter->setAttribute( NumberFormatter::GROUPING_USED, 0 );
+
+				for ( $digit = 0; $digit <= 9; $digit++ ) {
+					$table[ $digit ] = $number_formatter->format( $digit );
+				}
+			} catch ( Throwable $e ) {
+				$table = array();
 			}
 
 			self::$digits[ $this->locale ] = $table;

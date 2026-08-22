@@ -3,7 +3,7 @@ Contributors: sigmarubyz
 Tags: calendar, datetime, internationalization, i18n, formatting
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
@@ -99,6 +99,16 @@ It is a standard PHP extension that most hosts already provide. You do not stric
 
 == Changelog ==
 
+= 2.0.1 =
+
+Fixes a fatal error that could take the front end down after switching the site language.
+
+* Fix: Switching the site to a language ICU has no data for, such as South Azerbaijani, Saraiki, Hazaragi or Northern Kurdish, brought down the front end with a critical error. Those languages now keep the dates WordPress itself produces, which are already translated
+* Fix: A failed date formatter is no longer reused for the rest of the request, so one bad locale cannot repeat the failure on every date
+* Fix: A site with no language set no longer builds an invalid locale
+* Fix: A language with a region ICU does not carry now falls back to the language rather than giving up
+* Fix: Formatting can no longer raise out of the plugin at all. A date that cannot be converted is left as WordPress wrote it
+
 = 2.0.0 =
 
 This release rebuilds how dates are formatted. Sites using the Gregorian calendar see no change at all. We check this automatically against PHP's own date function on every commit.
@@ -170,6 +180,9 @@ Changed:
 * Thai Buddhist calendar special handling
 
 == Upgrade Notice ==
+
+= 2.0.1 =
+Fixes a critical error that could take the front end down on sites using a language ICU does not carry, such as South Azerbaijani. Update if you run 2.0.0.
 
 = 2.0.0 =
 Dates are now written on the server. The flash of Gregorian dates while a page loads is gone. Dates remain correct without JavaScript. Adds a choice of digits for Thai, Arabic, Persian and other numerals. Fixes custom date formats, which were previously ignored. Requires PHP 8.1 and WordPress 6.5.
