@@ -14,7 +14,9 @@ require __DIR__ . '/../../src/Format/CalendarRenderer.php';
 use Intl_DateTime_Calendar\Format\CalendarRenderer;
 
 $fixtures = json_decode( file_get_contents( __DIR__ . '/../fixtures/formats.json' ), true );
-$results  = array();
+
+// Recorded so a disagreement caused by differing ICU builds is visible.
+$results = array( '__icu__' => defined( 'INTL_ICU_VERSION' ) ? INTL_ICU_VERSION : 'unknown' );
 
 foreach ( $fixtures['locales'] as $config ) {
 	$renderer = new CalendarRenderer(

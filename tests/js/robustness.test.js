@@ -149,3 +149,49 @@ test('a cyclic calendar is declined rather than rendered without a year', () => 
     assert.equal(canRender({locale: 'ko-KR', calendar: 'dangi'}), false);
     assert.equal(canRender({locale: 'zh-CN', calendar: 'gregory'}), true);
 });
+
+test('a name field takes the form the locale uses inside a full date', () => {
+    const date = new Date('2025-05-04T13:05:07Z');
+
+    // The cross-language test masks words, because the two ICU builds word
+    // things differently. These assert the wording rules the engine itself is
+    // responsible for, against the platform's own data rather than a literal,
+    // so a CLDR revision cannot make them wrong.
+    for (const locale of ['ru-RU', 'cs-CZ', 'pl-PL', 'ca-ES']) {
+        const base = {calendar: 'gregory', timeZone: 'UTC'};
+
+        const part = (options) =>
+            (new Intl.DateTimeFormat(locale, {...base, ...options})
+                .formatToParts(date)
+                .find((p) => p.type === 'month') || {value: ''}).value;
+
+        const inContext = part({day: 'numeric', month: 'long', year: 'numeric'});
+        const alone = part({month: 'long'});
+
+        // Only meaningful where the locale actually distinguishes the two.
+        if (inContext === alone || /^\p{Nd}+$/u.test(inContext)) {
+            continue;
+        }
+
+        assert.equal(
+            render(date, 'F', {locale, calendar: 'gregory', timeZone: 'UTC'}),
+            inContext,
+            `${locale} should use the in-context month, not the standalone one`
+        );
+    }
+});
+
+test('a name field never renders as a bare number', () => {
+    const date = new Date('2025-05-04T13:05:07Z');
+
+    // Czech resolves a short month to "5" inside a full date, and Chinese
+    // resolves a long one to "5". A name was asked for, so a name must appear.
+    for (const [locale, format] of [['cs-CZ', 'M'], ['cs-CZ', 'M j'], ['zh-CN', 'F'], ['ja-JP', 'F']]) {
+        const out = render(date, format, {locale, calendar: 'gregory', timeZone: 'UTC'});
+
+        assert.ok(
+            /\p{L}/u.test(out),
+            `${locale} "${format}" rendered "${out}" with no name in it`
+        );
+    }
+});

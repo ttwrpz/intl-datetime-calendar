@@ -1,17 +1,24 @@
 /**
  * Cross-language parity test.
  *
- * The PHP and JavaScript renderers must produce identical text for identical
- * input. A page can be rendered on the server and then extended on the client
- * when a Query block navigates without a reload, so any disagreement between
- * the two shows up as a date that changes when the visitor clicks. This test
- * renders the shared fixture matrix through both engines and compares.
+ * The PHP and browser renderers must agree on everything they control: which
+ * field goes where, how wide it is, how it is padded, which digits it uses and
+ * what separates it from the next one.
  *
- * The PHP side is invoked through the CLI, so this test is skipped when PHP
- * or its intl extension is unavailable rather than reporting a false failure.
+ * They cannot be held to identical wording. Each side asks a different ICU
+ * build, and CLDR revises its text between versions, so Thai abbreviates
+ * Sunday as "อา." in one and "อาทิตย์" in another. Neither engine chooses
+ * that, and it is harmless in production, where the two never render the same
+ * element: anything the server wrote carries data-intl-rendered and the
+ * browser leaves it alone.
+ *
+ * So a format built only from numbers and literals is compared byte for byte,
+ * and a format containing a name is compared with the names masked. A wrong
+ * field, a wrong order, a lost separator, a bad width or a digit where a name
+ * belongs still fails. Only the wording itself may vary.
  */
 
-import {test, skip} from 'node:test';
+import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
@@ -20,38 +27,39 @@ import {dirname, join} from 'node:path';
 
 import {render, canRender, tokenize, FIELD} from '../../js/src/format.js';
 
-/**
- * Differences the browser platform imposes, which the server does not share.
- *
- * The server renders through ICU pattern letters and can ask for one exact
- * field. The browser renders through Intl option matching, where the locale
- * decides. Hebrew is the one case left where the two cannot agree: ICU's
- * day-period letter gives "אחה״צ", every Intl option gives "PM".
- *
- * Asserted exhaustive in both directions, so an entry that stops diverging
- * fails the test and gets removed rather than outliving the platform bug.
- */
-const KNOWN_DIVERGENCES = [
-    {
-        locale: 'he-IL',
-        fields: ['a', 'A'],
-        reason: 'Intl returns AM/PM for Hebrew day periods where ICU returns אחה״צ',
-    },
-];
-
-/** Whether a case is a known platform divergence rather than a defect. */
-function isKnownDivergence(config, format) {
-    const fields = tokenize(format)
-        .filter((token) => token.type === FIELD)
-        .map((token) => token.value);
-
-    return KNOWN_DIVERGENCES.some(
-        (entry) => entry.locale === config.locale && entry.fields.some((field) => fields.includes(field))
-    );
-}
-
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(here, '../fixtures/formats.json'), 'utf8'));
+
+/** Fields whose value is a word from CLDR rather than a number. */
+const NAME_FIELDS = ['F', 'M', 'D', 'l', 'a', 'A'];
+
+/**
+ * A run of letters, including the punctuation scripts use to mark an
+ * abbreviation: the period in Thai "อา.", the gershayim in Hebrew "אחה״צ".
+ */
+const NAMES = /[\p{L}\p{M}][\p{L}\p{M}.׳״'’]*/gu;
+
+/**
+ * Whether a format asks for any CLDR word.
+ *
+ * @param {string} format PHP date format string.
+ * @returns {boolean} True when a name field is present.
+ */
+function hasName(format) {
+    return tokenize(format)
+        .filter((token) => token.type === FIELD)
+        .some((token) => NAME_FIELDS.includes(token.value));
+}
+
+/**
+ * Replace every word with a placeholder, leaving the structure behind.
+ *
+ * @param {string} value Rendered date.
+ * @returns {string} The same date with its words masked.
+ */
+function maskNames(value) {
+    return value.replace(NAMES, '#');
+}
 
 /** Render the fixture matrix with the PHP engine. */
 function renderWithPhp() {
@@ -81,14 +89,14 @@ test('PHP and JavaScript renderers agree on every fixture', (t) => {
     }
 
     const mismatches = [];
-    const staleAllowances = [];
     const refused = [];
-    let compared = 0;
+    let exact = 0;
+    let structural = 0;
+    let worded = 0;
 
     for (const config of fixtures.locales) {
-        // A calendar the browser declines to render is never compared: it
-        // leaves the server's text in place instead, which is the correct
-        // outcome and has nothing to compare against.
+        // A calendar the browser declines is never compared: it leaves the
+        // server's text alone, which is the correct outcome.
         if (!canRender(config)) {
             refused.push(`${config.locale}/${config.calendar}`);
             continue;
@@ -98,15 +106,9 @@ test('PHP and JavaScript renderers agree on every fixture', (t) => {
             const date = new Date(moment);
 
             for (const format of fixtures.formats) {
-                const key = [
-                    config.locale,
-                    config.calendar,
-                    config.numberingSystem,
-                    moment,
-                    format,
-                ].join('|');
-
+                const key = [config.locale, config.calendar, config.numberingSystem, moment, format].join('|');
                 const expected = phpResults[key];
+
                 if (expected === undefined) {
                     continue;
                 }
@@ -118,41 +120,46 @@ test('PHP and JavaScript renderers agree on every fixture', (t) => {
                     timeZone: config.timeZone,
                 });
 
-                compared++;
+                if (!hasName(format)) {
+                    exact++;
 
-                const known = isKnownDivergence(config, format);
+                    if (actual !== expected) {
+                        mismatches.push(`${key}\n    php=${JSON.stringify(expected)}\n    js =${JSON.stringify(actual)}`);
+                    }
 
-                if (actual !== expected && !known) {
-                    mismatches.push(`${key}\n    php=${JSON.stringify(expected)}\n    js =${JSON.stringify(actual)}`);
+                    continue;
                 }
 
-                // An allowance that no longer diverges means the platform
-                // caught up, so the allowance should go rather than linger.
-                if (actual === expected && known) {
-                    staleAllowances.push(key);
+                structural++;
+
+                if (actual === expected) {
+                    worded++;
+                    continue;
+                }
+
+                if (maskNames(actual) !== maskNames(expected)) {
+                    mismatches.push(
+                        `${key}\n    php=${JSON.stringify(expected)} -> ${JSON.stringify(maskNames(expected))}` +
+                            `\n    js =${JSON.stringify(actual)} -> ${JSON.stringify(maskNames(actual))}`
+                    );
                 }
             }
         }
     }
 
-    assert.ok(compared > 0, 'expected at least one comparison');
+    console.log(`      ICU: php ${phpResults.__icu__ || 'unknown'}, node ${process.versions.icu}`);
+    console.log(`      ${exact} numeric formats compared exactly`);
+    console.log(`      ${structural} named formats compared structurally, ${worded} also matched word for word`);
 
     if (refused.length > 0) {
-        // Reported rather than hidden, so a calendar that silently stops
-        // being renderable in the browser is visible in the test output.
         console.log(`      browser declines (server text kept): ${refused.join(', ')}`);
     }
+
+    assert.ok(exact + structural > 0, 'expected at least one comparison');
 
     assert.equal(
         mismatches.length,
         0,
-        `${mismatches.length} of ${compared} cases disagree:\n  ${mismatches.slice(0, 25).join('\n  ')}`
-    );
-
-    assert.equal(
-        staleAllowances.length,
-        0,
-        `KNOWN_DIVERGENCES no longer applies to ${staleAllowances.length} cases; remove the entry:\n  ` +
-            staleAllowances.slice(0, 10).join('\n  ')
+        `${mismatches.length} of ${exact + structural} cases disagree:\n  ${mismatches.slice(0, 25).join('\n  ')}`
     );
 });
