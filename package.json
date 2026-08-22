@@ -7,7 +7,7 @@
     "type": "module",
     "scripts": {
         "build": "node build.mjs",
-        "test": "node --test tests/js/",
+        "test": "node --test \"tests/js/*.test.js\"",
         "check": "npm run build -- --check && npm test"
     },
     "devDependencies": {
