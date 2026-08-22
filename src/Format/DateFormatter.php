@@ -86,6 +86,23 @@ final class DateFormatter {
 	}
 
 	/**
+	 * The locale a visitor sees, whatever language the admin is working in.
+	 *
+	 * WordPress answers determine_locale() with the editor's own profile
+	 * language inside wp-admin. Front end dates follow the site language, so
+	 * anything describing what visitors see must ask for that instead.
+	 *
+	 * @return string Locale such as 'th-TH'.
+	 */
+	public static function site_locale(): string {
+		/** This filter is documented in src/Format/DateFormatter.php */
+		return (string) apply_filters(
+			'intl_datetime_calendar_locale',
+			str_replace( '_', '-', get_locale() )
+		);
+	}
+
+	/**
 	 * The calendar dates should be written in.
 	 *
 	 * @return string ICU calendar identifier.

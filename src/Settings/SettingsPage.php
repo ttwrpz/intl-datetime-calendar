@@ -108,7 +108,7 @@ final class SettingsPage {
 			$handle,
 			'window.intlDateTimeCalendarAdmin = ' . wp_json_encode(
 				array(
-					'locale'     => DateFormatter::locale(),
+					'locale'     => DateFormatter::site_locale(),
 					'timeZone'   => DateFormatter::timezone()->getName(),
 					'dateFormat' => (string) get_option( 'date_format', 'F j, Y' ),
 					'timeFormat' => (string) get_option( 'time_format', 'g:i a' ),
@@ -253,6 +253,25 @@ final class SettingsPage {
 	}
 
 	/**
+	 * The site language, named in the language the admin is reading.
+	 *
+	 * @return string Language name, or the locale code when it cannot be named.
+	 */
+	private static function site_language_name(): string {
+		$site_locale = str_replace( '-', '_', DateFormatter::site_locale() );
+
+		if ( class_exists( '\Locale' ) ) {
+			$name = \Locale::getDisplayName( $site_locale, str_replace( '-', '_', DateFormatter::locale() ) );
+
+			if ( is_string( $name ) && '' !== $name ) {
+				return $name;
+			}
+		}
+
+		return $site_locale;
+	}
+
+	/**
 	 * Render the settings page.
 	 */
 	public static function render(): void {
@@ -321,8 +340,14 @@ final class SettingsPage {
 								style="font-size:1.2em;padding:12px;background:#f0f0f1;border-left:4px solid #2271b1;max-width:40em;">
 								<span id="intl-preview-date"><?php echo esc_html__( 'Loading preview', 'intl-datetime-calendar' ); ?></span>
 							</div>
-							<p class="description">
-								<?php esc_html_e( 'Today\'s date in the selected calendar, using your existing date format.', 'intl-datetime-calendar' ); ?>
+								<p class="description">
+								<?php
+								printf(
+									/* translators: %s: the site language, e.g. Thai. */
+									esc_html__( 'Today\'s date as a visitor sees it, in %s, using your existing date format.', 'intl-datetime-calendar' ),
+									'<strong>' . esc_html( self::site_language_name() ) . '</strong>'
+								);
+								?>
 							</p>
 						</td>
 					</tr>

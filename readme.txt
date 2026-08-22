@@ -3,7 +3,7 @@ Contributors: sigmarubyz
 Tags: calendar, datetime, internationalization, i18n, formatting
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
@@ -99,6 +99,11 @@ It is a standard PHP extension that most hosts already provide. You do not stric
 
 == Changelog ==
 
+= 2.0.2 =
+
+* Fix: The preview on the settings page showed dates in your own admin language rather than the language your visitors read. On a site whose language differs from the editor's, it previewed months no visitor would ever see
+* Improvement: The preview now names the language it is showing, so there is no doubt which one it means
+
 = 2.0.1 =
 
 Fixes a fatal error that could take the front end down after switching the site language.
@@ -180,6 +185,9 @@ Changed:
 * Thai Buddhist calendar special handling
 
 == Upgrade Notice ==
+
+= 2.0.2 =
+The settings preview now shows dates in your site language rather than your own admin language.
 
 = 2.0.1 =
 Fixes a critical error that could take the front end down on sites using a language ICU does not carry, such as South Azerbaijani. Update if you run 2.0.0.

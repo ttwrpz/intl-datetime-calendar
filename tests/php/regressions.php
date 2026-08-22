@@ -167,6 +167,32 @@ if ( CalendarRenderer::is_available() ) {
 	// A region ICU lacks should fall back to the language, not give up.
 	$region = new CalendarRenderer( 'ar_XX', 'gregory', '', $zone );
 	check( 'an unknown region falls back to the language', true, '' !== $region->render( new DateTimeImmutable( '2026-08-23', $zone ), 'j F Y' ) );
+
+	echo "\nThe settings preview describes the front end\n";
+
+	// determine_locale() answers with the editor's own language inside
+	// wp-admin, so the preview used to show months a visitor never sees.
+	intl_test_set_option( 'locale', 'th_TH' );
+	intl_test_set_option( 'user_locale', 'en_US' );
+	\Intl_DateTime_Calendar\Settings\Options::flush();
+
+	check( 'the current request follows the editor', 'en-US', \Intl_DateTime_Calendar\Format\DateFormatter::locale() );
+	check( 'the preview follows the site', 'th-TH', \Intl_DateTime_Calendar\Format\DateFormatter::site_locale() );
+
+	$preview = new CalendarRenderer(
+		\Intl_DateTime_Calendar\Format\DateFormatter::site_locale(),
+		'buddhist',
+		'thai',
+		new DateTimeZone( 'Asia/Bangkok' )
+	);
+	check(
+		'the preview renders Thai months, not English ones',
+		'๒๓ สิงหาคม ๒๕๖๙',
+		$preview->render( new DateTimeImmutable( '2026-08-23', new DateTimeZone( 'Asia/Bangkok' ) ), 'j F Y' )
+	);
+
+	unset( $GLOBALS['intl_test_options']['user_locale'] );
+	\Intl_DateTime_Calendar\Settings\Options::flush();
 } else {
 	echo "\nSKIP calendar rendering: ext-intl is not installed\n";
 }

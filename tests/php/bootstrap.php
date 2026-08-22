@@ -38,7 +38,8 @@ function get_locale() {
 }
 
 function determine_locale() {
-	return get_locale();
+	// Inside wp-admin WordPress answers with the editor's own language.
+	return $GLOBALS['intl_test_options']['user_locale'] ?? get_locale();
 }
 
 function apply_filters( $tag, $value ) {
