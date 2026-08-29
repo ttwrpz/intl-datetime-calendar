@@ -104,28 +104,81 @@ if ( CalendarRenderer::is_available() ) {
 	// The machine-readable attribute must stay Gregorian and unambiguous.
 	check_contains( 'datetime attribute stays Gregorian', 'datetime="2025-05-04T00:00:00+07:00"', $thai );
 
-	echo "\nThe wp_date filter (the main conversion path)\n";
+	$zone = new DateTimeZone( 'Asia/Bangkok' );
 
-	$timestamp = ( new DateTimeImmutable( '2025-05-04 12:30:45', new DateTimeZone( 'Asia/Bangkok' ) ) )->getTimestamp();
-	$zone      = new DateTimeZone( 'Asia/Bangkok' );
+	echo "\nStored dates are never rewritten\n";
 
-	$display = \Intl_DateTime_Calendar\Render\DateFilter::filter_date( 'May 4, 2025', 'F j, Y', $timestamp, $zone );
-	check( 'a display format is converted', 'พฤษภาคม ๔, ๒๕๖๘', $display );
+	// 2.0.2 hooked wp_date, so a plugin calling wp_date('Y-m-d') for a
+	// database key received 2569-08-29 and a retention job comparing against a
+	// 2569 cutoff deleted every Gregorian row it had.
+	check(
+		'the wp_date filter is not registered at all',
+		false,
+		isset( $GLOBALS['intl_test_filters']['wp_date'] )
+	);
 
-	// The core date block builds its datetime attribute with get_the_date('c'),
-	// which arrives through this same filter. Rewriting it would publish a
-	// Buddhist year inside a machine-readable attribute.
-	$iso = \Intl_DateTime_Calendar\Render\DateFilter::filter_date( '2025-05-04T12:30:45+07:00', 'c', $timestamp, $zone );
-	check( 'the machine-readable c format is left alone', '2025-05-04T12:30:45+07:00', $iso );
+	$post = new WP_Post();
 
-	$rfc = \Intl_DateTime_Calendar\Render\DateFilter::filter_date( 'Sun, 04 May 2025 12:30:45 +0700', 'r', $timestamp, $zone );
-	check( 'the machine-readable r format is left alone', 'Sun, 04 May 2025 12:30:45 +0700', $rfc );
+	// Filtering by format cannot save it: a site may set its date format to
+	// Y-m-d, so the display format and the storage shape are the same string.
+	intl_test_set_option( 'date_format', 'Y-m-d' );
+	check(
+		'a display filter still converts when the site format is Y-m-d',
+		'๒๕๖๙-๐๘-๒๙',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_post_date( '2026-08-29', '', $post )
+	);
+	intl_test_set_option( 'date_format', 'F j, Y' );
 
-	$unix = \Intl_DateTime_Calendar\Render\DateFilter::filter_date( (string) $timestamp, 'U', $timestamp, $zone );
-	check( 'a Unix timestamp is left alone', (string) $timestamp, $unix );
+	echo "\nDisplay filters still convert\n";
 
-	// A non-string or empty format must never reach the renderer.
-	check( 'an empty format is passed through', 'x', \Intl_DateTime_Calendar\Render\DateFilter::filter_date( 'x', '', $timestamp, $zone ) );
+	check(
+		'a post date is converted',
+		'๒๙ สิงหาคม ๒๕๖๙',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_post_date( '29 August 2026', 'j F Y', $post )
+	);
+	check(
+		'a modified date reads the modified field',
+		'๓๐ สิงหาคม ๒๕๖๙',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_modified_date( '30 August 2026', 'j F Y', $post )
+	);
+
+	$comment = new WP_Comment();
+	check(
+		'a comment date is converted',
+		'๒๙ สิงหาคม ๒๕๖๙',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_comment_date( '29 August 2026', 'j F Y', $comment )
+	);
+	check(
+		'a comment asked for untranslated is left alone',
+		'2026-08-29',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_comment_time( '2026-08-29', 'Y-m-d', false, false, $comment )
+	);
+
+	// The core date block builds its datetime attribute with get_the_date('c').
+	check(
+		'the machine-readable c format is left alone',
+		'2026-08-29T10:00:00+07:00',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_post_date( '2026-08-29T10:00:00+07:00', 'c', $post )
+	);
+	check(
+		'a Unix timestamp is left alone',
+		'1787972400',
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_post_date( '1787972400', 'U', $post )
+	);
+
+	echo "\nRequests that produce data, not pages\n";
+
+	foreach ( array( 'cron', 'ajax', 'json', 'feed' ) as $context ) {
+		$GLOBALS['intl_test_context'] = array( $context => true );
+
+		check(
+			$context . ' is left alone',
+			'29 August 2026',
+			\Intl_DateTime_Calendar\Render\DateFilter::filter_post_date( '29 August 2026', 'j F Y', $post )
+		);
+
+		$GLOBALS['intl_test_context'] = array();
+	}
 
 	echo "\nLocales ICU has no data for\n";
 
@@ -155,7 +208,7 @@ if ( CalendarRenderer::is_available() ) {
 	check(
 		'an unsupported locale keeps WordPress own date',
 		'2026-08-23',
-		\Intl_DateTime_Calendar\Render\DateFilter::filter_date( '2026-08-23', 'Y-m-d', $timestamp, $zone )
+		\Intl_DateTime_Calendar\Render\DateFilter::filter_post_date( '2026-08-23', 'Y-m-d', new WP_Post() )
 	);
 	intl_test_set_option( 'locale', 'th_TH' );
 	\Intl_DateTime_Calendar\Settings\Options::flush();

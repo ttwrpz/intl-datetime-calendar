@@ -3,7 +3,7 @@ Contributors: sigmarubyz
 Tags: calendar, datetime, internationalization, i18n, formatting
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
@@ -19,7 +19,7 @@ Intl DateTime Calendar changes how dates are written on your site without changi
 * **Any calendar system** including Buddhist, Hijri, Hebrew, Persian, Japanese, Indian, Coptic, Ethiopic and Chinese
 * **Native digits** so a Thai site can show ๔ พฤษภาคม ๒๕๖๘ and an Arabic site can show ٦ ذو القعدة ١٤٤٦
 * **Your existing date format** is respected, including any custom format set on an individual block
-* **Nothing to relearn** because the calendar applies everywhere WordPress writes a date
+* **Where it counts** on post dates, modified dates, comments and archives, and nowhere else. What a plugin stores is never touched
 * **Correct for search engines** because the underlying datetime attribute stays Gregorian and unambiguous
 * **No database changes** at all. Switching calendars or removing the plugin leaves your content untouched
 
@@ -84,7 +84,11 @@ Yes. On a multilingual site each language can have its own calendar, so a Thai r
 
 = Another plugin reads dates from my pages and now gets confused. What do I do? =
 
-Use the `intl_datetime_calendar_should_convert` filter to leave particular dates in the Gregorian calendar, or turn off server rendering on the settings page.
+Only dates on their way to a page are converted. Scheduled jobs, REST and AJAX requests, feeds and the admin are left alone, so anything another plugin stores or compares stays Gregorian. If you still need to exclude something, use the `intl_datetime_calendar_should_convert` filter, or turn off server rendering on the settings page.
+
+= Can this break another plugin's data? =
+
+No. Only dates on their way to a page are converted. A plugin that stores a date, compares one, or formats one during a scheduled job gets the ordinary Gregorian value. If you write a plugin, prefer `current_datetime()` or `get_post_datetime()` for anything you intend to store, since those are not display functions in the first place.
 
 = What is the intl extension and do I need it? =
 
@@ -98,6 +102,17 @@ It is a standard PHP extension that most hosts already provide. You do not stric
 4. Site Health reporting that dates are converted on the server
 
 == Changelog ==
+
+= 2.0.3 =
+
+Fixes a bug that could corrupt dates another plugin had stored. Update if you run 2.0.0, 2.0.1 or 2.0.2.
+
+* Fix: Conversion applied to every date WordPress formatted, not only dates on their way to a page. A plugin calling `wp_date( 'Y-m-d' )` to build a database key received a Buddhist Era year, and one calling it for a retention cutoff compared that against its Gregorian rows and deleted them
+* Fix: Conversion now happens on the display filters, which say a date is meant to be read, rather than on `wp_date`, which says nothing about intent. Filtering by format alone cannot tell the two apart, because a site may set its date format to `Y-m-d`
+* Fix: Scheduled jobs, REST and AJAX requests, XML-RPC, WP-CLI and feeds are left alone, so a job writing a date into a table cannot write a converted one
+* Improvement: The settings screen now says which dates conversion applies to
+
+Themes calling `wp_date()` or `date_i18n()` directly are no longer converted. Use `intl_datetime_calendar_format_date()` for those.
 
 = 2.0.2 =
 
@@ -185,6 +200,9 @@ Changed:
 * Thai Buddhist calendar special handling
 
 == Upgrade Notice ==
+
+= 2.0.3 =
+Important. Earlier 2.0.x releases converted every date WordPress formatted, including dates other plugins store and compare, which could corrupt their data. Conversion is now limited to dates being shown on a page.
 
 = 2.0.2 =
 The settings preview now shows dates in your site language rather than your own admin language.

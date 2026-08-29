@@ -84,6 +84,42 @@ function esc_html( $text ) {
 	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
 }
 
+class WP_Post {
+	public $ID = 1;
+	public $post_date = '2026-08-29 10:00:00';
+	public $post_modified = '2026-08-30 11:00:00';
+}
+
+class WP_Comment {
+	public $comment_ID = 1;
+	public $comment_date = '2026-08-29 10:00:00';
+	public $comment_date_gmt = '2026-08-29 03:00:00';
+}
+
+function get_post_datetime( $post, $field = 'date' ) {
+	$stored = 'modified' === $field ? $post->post_modified : $post->post_date;
+
+	return new DateTimeImmutable( $stored, wp_timezone() );
+}
+
+function wp_doing_cron() {
+	return ! empty( $GLOBALS['intl_test_context']['cron'] );
+}
+
+function wp_doing_ajax() {
+	return ! empty( $GLOBALS['intl_test_context']['ajax'] );
+}
+
+function wp_is_json_request() {
+	return ! empty( $GLOBALS['intl_test_context']['json'] );
+}
+
+function is_feed() {
+	return ! empty( $GLOBALS['intl_test_context']['feed'] );
+}
+
+$GLOBALS['intl_test_context'] = array();
+
 require_once ABSPATH . 'src/Format/FormatSpec.php';
 require_once ABSPATH . 'src/Format/CalendarRenderer.php';
 require_once ABSPATH . 'src/Settings/Options.php';

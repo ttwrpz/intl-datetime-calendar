@@ -365,7 +365,7 @@ final class SettingsPage {
 								<?php esc_html_e( 'Convert dates before the page is sent', 'intl-datetime-calendar' ); ?>
 							</label>
 							<p class="description">
-								<?php esc_html_e( 'Recommended. Turn this off only if another plugin needs to read Gregorian dates from the rendered page.', 'intl-datetime-calendar' ); ?>
+								<?php esc_html_e( 'Recommended. Only dates being shown on a page are converted, so scheduled jobs, feeds and anything a plugin stores are left in the Gregorian calendar. Turn this off if another plugin needs to read Gregorian dates from the rendered page.', 'intl-datetime-calendar' ); ?>
 							</p>
 						</td>
 					</tr>

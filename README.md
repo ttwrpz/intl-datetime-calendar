@@ -74,6 +74,8 @@ A date that cannot be read is shown back to you unchanged. It is never quietly t
 | `intl_datetime_calendar_numbering_system` | Override which digits are used |
 | `intl_datetime_calendar_should_convert` | Leave particular dates in the Gregorian calendar |
 
+Conversion is hooked to `get_the_date`, `get_the_time`, `get_the_modified_date`, `get_the_modified_time`, `get_comment_date` and `get_comment_time`, and skipped for cron, REST, AJAX, XML-RPC, WP-CLI, feeds and the admin. `wp_date()` itself is deliberately not hooked: it is used for storage as well as display, and no format allow list can separate the two, because a site may set its date format to `Y-m-d`.
+
 A multilingual site can give each language its own calendar:
 
 ```php
@@ -90,11 +92,11 @@ add_filter( 'intl_datetime_calendar_calendar', function ( $calendar, $locale ) {
 }, 10, 2 );
 ```
 
-If another plugin reads dates back out of your rendered pages, leave those alone:
+If something still needs a Gregorian date, exclude it:
 
 ```php
 add_filter( 'intl_datetime_calendar_should_convert', function ( $convert, $format ) {
-    return is_feed() ? false : $convert;
+    return is_singular( 'invoice' ) ? false : $convert;
 }, 10, 2 );
 ```
 
