@@ -14,6 +14,9 @@
 /js/src/*.min.js
 /tests/**/*.min.js
 
+# Local editor and tooling config
+/.mcp.json
+
 # Editors
 /.idea/
 /.vscode/
